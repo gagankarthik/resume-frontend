@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ── Government Design System Tokens ────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Public Sans — the USWDS standard typeface */
+  --font-sans: 'Public Sans', system-ui, sans-serif;
+
+  /* Government primary palette */
+  --color-gov-navy:       #0d2240;
+  --color-gov-blue:       #005ea2;
+  --color-gov-blue-mid:   #1a5eb5;
+  --color-gov-blue-light: #d9e8f6;
+  --color-gov-blue-bg:    #f0f6fb;
+
+  /* Government accent palette */
+  --color-gov-gold:       #b88400;
+  --color-gov-gold-light: #fef3d0;
+  --color-gov-green:      #1e7a50;
+  --color-gov-green-light:#d7f0e4;
+  --color-gov-red:        #c9190b;
+
+  /* Government neutrals */
+  --color-gov-gray-50:    #f5f7fa;
+  --color-gov-gray-100:   #eaeef3;
+  --color-gov-gray-200:   #d0d5dd;
+  --color-gov-gray-400:   #8795a8;
+  --color-gov-gray-600:   #4a5568;
+  --color-gov-gray-900:   #1a1a2e;
+
+  /* Ohio format */
+  --color-ocean-blue: #005ea2;
+  --color-ocean-dark: #0d2240;
+
+  /* Pennsylvania format */
+  --color-pa-dark: #002868;
+  --color-pa-gold: #b88400;
+
+  /* Animations */
+  --animate-fade-in:    fade-in 0.25s ease-out;
+  --animate-slide-up:   slide-up 0.35s ease-out;
+  --animate-shimmer:    shimmer 2s linear infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Keyframes ────────────────────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+/* ── Utility classes ──────────────────────────────────────────────────────── */
+.animate-fade-in     { animation: fade-in 0.25s ease-out; }
+.animate-slide-up    { animation: slide-up 0.35s ease-out; }
+.pulse-ring::after   {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: pulse-ring 1.4s ease-out infinite;
+  border: 2px solid #005ea2;
+}
+
+/* Government texture — subtle dot grid */
+.gov-dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Official line pattern for headers */
+.gov-line-pattern {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 8px,
+    rgba(255,255,255,0.02) 8px,
+    rgba(255,255,255,0.02) 9px
+  );
+}
+
+/* Section rule — official divider style */
+.gov-rule {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.gov-rule::before,
+.gov-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d0d5dd, transparent);
+}
+
+/* Official form field */
+.gov-input {
+  width: 100%;
+  border: 1.5px solid #d0d5dd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: #1a1a2e;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.gov-input:focus {
+  border-color: #005ea2;
+  box-shadow: 0 0 0 3px rgba(0, 94, 162, 0.15);
+}
+
+/* Print */
+@media print {
+  nav, header, aside, .no-print { display: none !important; }
+  #resume-preview {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #f5f7fa; }
+::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #8795a8; }
