@@ -4,6 +4,7 @@ import type {
   OhioEducationEntry,
   OhioCertificationEntry,
   OhioEmploymentEntry,
+  SimpleProject,
   SkillCategory,
   TokenStats,
 } from './types';
@@ -87,21 +88,24 @@ export function mapToResumeData(api: APIResponse): ResumeData {
 
   if (skills) {
     const cats: SkillCategory[] = [];
-    const add = (name: string, arr?: string[]) => {
-      if (arr && arr.length > 0) cats.push({ categoryName: name, skills: arr });
+
+    const addCat = (name: string, arr?: string[]) => {
+      if (!arr || arr.length === 0) return;
+      const clean = arr.map(s => s.trim()).filter(Boolean);
+      if (clean.length > 0) cats.push({ categoryName: name, skills: clean });
     };
-    add('Programming Languages', skills.programming_languages);
-    add('Frameworks & Libraries', skills.frameworks_and_libraries);
-    add('Databases', skills.databases);
-    add('Cloud Platforms', skills.cloud_platforms);
-    add('Tools & Platforms', skills.tools_and_platforms);
-    add('Technical Skills', skills.technical_skills);
-    add('Operating Systems', skills.operating_systems);
-    add('Methodologies', skills.methodologies);
-    add('Domain Skills', skills.domain_skills);
-    add('Design Skills', skills.design_skills);
-    add('Soft Skills', skills.soft_skills);
-    add('Other Skills', skills.other_skills);
+
+    addCat('Programming Languages', skills.programming_languages);
+    addCat('Frameworks & Libraries', skills.frameworks_and_libraries);
+    addCat('Databases', skills.databases);
+    addCat('Cloud Platforms', skills.cloud_platforms);
+    addCat('Tools & Platforms', skills.tools_and_platforms);
+    addCat('Operating Systems', skills.operating_systems);
+    addCat('Methodologies', skills.methodologies);
+    addCat('Domain Skills', skills.domain_skills);
+    addCat('Design Skills', skills.design_skills);
+    addCat('Soft Skills', skills.soft_skills);
+    addCat('Other Skills', skills.other_skills);
 
     if (cats.length > 0) {
       skillCategories = cats;
@@ -118,8 +122,23 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     name: pi?.full_name,
     title,
     requisitionNumber: pi?.requisition_number,
+    email: pi?.email?.[0],
+    phone: pi?.phone?.[0],
+    linkedin: pi?.linkedin_url ?? undefined,
+    github: pi?.github_url ?? undefined,
+    location: pi?.address?.city
+      ? [pi.address.city, pi.address.state ?? pi.address.country].filter(Boolean).join(', ')
+      : pi?.address?.full_address ?? undefined,
     tokenStats,
     education,
+    projects: (api.projects ?? []).map((p): SimpleProject => ({
+      name: p.name,
+      description: p.description,
+      role: p.role,
+      date: p.end_date ?? p.start_date,
+      technologies: p.technologies,
+      highlights: p.highlights,
+    })),
     certifications,
     employmentHistory,
     professionalSummary,

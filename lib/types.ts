@@ -365,16 +365,31 @@ export interface TokenStats {
   cost?: number;
 }
 
+export interface SimpleProject {
+  name?: string;
+  description?: string;
+  role?: string;
+  technologies?: string[];
+  highlights?: string[];
+  date?: string;
+}
+
 export interface ResumeData {
   // display info
   name?: string;
   title?: string;
   requisitionNumber?: string;
+  email?: string;
+  phone?: string;
+  linkedin?: string;
+  github?: string;
+  location?: string;
   tokenStats?: TokenStats;
   // sections
   education?: OhioEducationEntry[];
   certifications?: OhioCertificationEntry[];
   employmentHistory?: OhioEmploymentEntry[];
+  projects?: SimpleProject[];
   professionalSummary?: string[];
   summarySections?: OhioSubsection[];
   subsections?: OhioSubsection[];

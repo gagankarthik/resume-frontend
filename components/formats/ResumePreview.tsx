@@ -3,6 +3,7 @@
 import React from 'react';
 import type { ResumeData } from '@/lib/types';
 import { stripBullet, normalizeMonthAbbr, sortEducation, getEdLocation, formatLocation, groupResponsibilities } from '@/lib/docx/shared';
+import OceanblueFormat from './OceanblueFormat';
 
 // Filter out non-geographic location values
 function resolveLocation(raw: string): string {
@@ -27,10 +28,12 @@ const REQ_LABEL: Record<'ohio' | 'pennsylvania', string> = {
 
 interface ResumePreviewProps {
   resumeData: ResumeData;
-  format?: 'ohio' | 'pennsylvania';
+  format?: 'ohio' | 'pennsylvania' | 'oceanblue';
 }
 
 const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohio' }) => {
+  if (format === 'oceanblue') return <OceanblueFormat resumeData={resumeData} />;
+
   const sortedEdu = sortEducation(resumeData.education ?? []);
 
   return (
