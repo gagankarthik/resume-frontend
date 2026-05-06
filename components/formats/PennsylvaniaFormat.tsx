@@ -103,9 +103,9 @@ const PennsylvaniaFormat = React.forwardRef<HTMLDivElement, Props>(
                 <SectionTitle label="Professional Summary" />
                 {(() => {
                   const items = (resumeData.professionalSummary ?? []).flatMap(p => splitBulletItems(p));
-                  return items.length > 1
-                    ? <ul className="space-y-1">{items.map((t, i) => <li key={i} className="flex gap-2 text-gray-700"><span className="text-pa-gold mt-0.5">▶</span>{t}</li>)}</ul>
-                    : <p className="text-gray-700 text-justify leading-relaxed">{items[0]}</p>;
+                  return (
+                    <ul className="space-y-1">{items.map((t, i) => <li key={i} className="flex gap-2 text-gray-700"><span className="text-pa-gold mt-0.5">▶</span>{t}</li>)}</ul>
+                  );
                 })()}
               </section>
             )}

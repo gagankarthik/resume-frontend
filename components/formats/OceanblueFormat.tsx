@@ -11,6 +11,7 @@ import {
   groupResponsibilities,
   formatLocation,
 } from '@/lib/docx/shared';
+import { splitBulletItems } from '@/formatters/shared/utils';
 
 const TEXT    = '#111111';
 const SUBTEXT = '#444444';
@@ -108,9 +109,16 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
           {(resumeData.professionalSummary?.length ?? 0) > 0 && (
             <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Professional Summary" />
-              {resumeData.professionalSummary!.map((pt, i) => (
-                <p key={i} style={{ margin: '0 0 4px', fontSize: 12, color: SUBTEXT, lineHeight: 1.55, textAlign: 'justify' }}>{pt}</p>
-              ))}
+              {(() => {
+                const items = (resumeData.professionalSummary ?? []).flatMap(p => splitBulletItems(p));
+                return (
+                  <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                    {items.map((pt, i) => (
+                      <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.55, marginBottom: 3 }}>{pt}</li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </section>
           )}
 

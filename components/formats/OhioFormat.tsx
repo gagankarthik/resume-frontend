@@ -279,13 +279,13 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
                   <div className="mb-4">
                     {(() => {
                       const items = (resumeData.professionalSummary ?? []).flatMap(p => splitBulletItems(p));
-                      return items.length > 1
-                        ? <ul className="space-y-1 pl-1">{items.map((item, i) => (
-                            <li key={i} className="flex items-start text-gray-800 text-justify">
-                              <span className="mr-2 mt-0.5 text-blue-900 flex-shrink-0">•</span><span>{item}</span>
-                            </li>
-                          ))}</ul>
-                        : <p className="text-gray-800 text-justify">{items[0]}</p>;
+                      return (
+                        <ul className="space-y-1 pl-1">{items.map((item, i) => (
+                          <li key={i} className="flex items-start text-gray-800 text-justify">
+                            <span className="mr-2 mt-0.5 text-blue-900 flex-shrink-0">•</span><span>{item}</span>
+                          </li>
+                        ))}</ul>
+                      );
                     })()}
                   </div>
                 )}
