@@ -12,7 +12,7 @@ import { FiCheckCircle, FiSave, FiUpload, FiLayout, FiEye, FiEdit3, FiPrinter, F
 import { OfficialSeal } from '@/components/landing/GovNav';
 import StateDownloadDialog from '@/components/formats/StateDownloadDialog';
 
-type StateFormat = 'ohio' | 'pennsylvania' | 'oceanblue';
+type StateFormat = 'ohio' | 'pennsylvania' | 'oceanblue' | 'georgia';
 type PanelMode   = 'split' | 'editor' | 'preview';
 
 export default function EditorPage() {
@@ -231,6 +231,7 @@ export default function EditorPage() {
               >
                 <option value="ohio">Ohio (VectorVMS)</option>
                 <option value="pennsylvania">Pennsylvania (PeopleFluent)</option>
+                <option value="georgia">Georgia (GA Standard)</option>
                 <option value="oceanblue">Oceanblue (ATS)</option>
               </select>
             </div>

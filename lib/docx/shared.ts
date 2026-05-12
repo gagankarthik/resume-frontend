@@ -72,6 +72,32 @@ export const splitBulletItems = (t = '') => {
 const splitOnGlyph = (s: string): string[] =>
   s.split(/\s*[•●▪‣◦⁃∙]\s*/).map(p => p.trim()).filter(Boolean);
 
+// Prose paragraph → bullet list, falling back to sentence boundaries.
+const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
+
+export const splitProseToBullets = (s = ''): string[] => {
+  const base = splitBulletItems(s);
+  if (base.length > 1) return base;
+  const text = (base[0] ?? s).toString().trim();
+  if (text.length < 80) return [text];
+
+  const parts: string[] = [];
+  let buf = '';
+  const tokens = text.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
+  for (const t of tokens) {
+    if (ABBREVS.test(buf)) {
+      buf = `${buf} ${t}`;
+      continue;
+    }
+    if (buf) parts.push(buf.trim());
+    buf = t;
+  }
+  if (buf) parts.push(buf.trim());
+
+  const cleaned = parts.map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  return cleaned.length > 1 ? cleaned : [text];
+};
+
 // ── Education sorting ──────────────────────────────────────────────────────
 
 const normalizeDegree = (d = '') => d.toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();

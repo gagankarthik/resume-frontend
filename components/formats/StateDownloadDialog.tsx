@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FiX, FiDownload, FiPrinter } from 'react-icons/fi';
 import type { ResumeData } from '@/lib/types';
 
-type StateOption = 'ohio' | 'pennsylvania' | 'oceanblue';
+type StateOption = 'ohio' | 'pennsylvania' | 'oceanblue' | 'georgia';
 
 interface Props {
   isOpen: boolean;
@@ -37,6 +37,9 @@ const StateDownloadDialog: React.FC<Props> = ({ isOpen, onClose, resumeData, def
       } else if (selected === 'oceanblue') {
         const { buildOceanblueDocx } = await import('@/lib/docx');
         await buildOceanblueDocx(resumeData);
+      } else if (selected === 'georgia') {
+        const { buildGeorgiaDocx } = await import('@/lib/docx');
+        await buildGeorgiaDocx(resumeData);
       }
     } catch (e) {
       console.error('DOCX generation failed', e);
@@ -64,10 +67,11 @@ const StateDownloadDialog: React.FC<Props> = ({ isOpen, onClose, resumeData, def
           {/* State selector */}
           <div>
             <p className="text-xs font-bold text-gov-gray-500 uppercase tracking-widest mb-3">State Format</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {([
                 { id: 'ohio' as StateOption, emoji: '🏛️', label: 'Ohio', sub: 'OH Standard' },
                 { id: 'pennsylvania' as StateOption, emoji: '🔔', label: 'Pennsylvania', sub: 'PA Standard' },
+                { id: 'georgia' as StateOption, emoji: '🍑', label: 'Georgia', sub: 'GA Standard' },
                 { id: 'oceanblue' as StateOption, emoji: '🌊', label: 'Oceanblue', sub: 'ATS Standard' },
               ]).map(s => (
                 <button

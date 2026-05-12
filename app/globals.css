@@ -35,6 +35,11 @@
   --color-pa-dark: #002868;
   --color-pa-gold: #b88400;
 
+  /* Georgia format */
+  --color-ga-red:   #BA0C2F;
+  --color-ga-dark:  #1a1a1a;
+  --color-ga-cream: #FFF7E6;
+
   /* Animations */
   --animate-fade-in:    fade-in 0.25s ease-out;
   --animate-slide-up:   slide-up 0.35s ease-out;

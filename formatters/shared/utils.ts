@@ -49,6 +49,38 @@ function splitInlineBullets(s: string): string[] {
   return parts.length > 0 ? parts : [s];
 }
 
+// Last-resort splitter for prose paragraphs that have no bullet/newline/pipe/semicolon
+// separators — splits on sentence boundaries so long summary/responsibility blobs
+// render as a bullet list. Only kicks in when the input is a paragraph (≥ 2 sentences
+// and ≥ 80 chars) so short single-sentence items aren't shredded by abbreviations.
+const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
+
+export function splitProseToBullets(s: string): string[] {
+  const base = splitBulletItems(s);
+  if (base.length > 1) return base;
+  const text = (base[0] ?? s).trim();
+  if (text.length < 80) return [text];
+
+  const parts: string[] = [];
+  let buf = '';
+  // Split on `.`, `!`, or `?` followed by whitespace and an uppercase letter or digit.
+  const tokens = text.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
+  for (const t of tokens) {
+    const candidate = buf ? `${buf} ${t}` : t;
+    // Merge back if the previous chunk ended on a known abbreviation.
+    if (ABBREVS.test(buf)) {
+      buf = candidate;
+      continue;
+    }
+    if (buf) parts.push(buf.trim());
+    buf = t;
+  }
+  if (buf) parts.push(buf.trim());
+
+  const cleaned = parts.map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  return cleaned.length > 1 ? cleaned : [text];
+}
+
 export function sortEducation(education: OhioEducationEntry[]): OhioEducationEntry[] {
   return [...education].sort((a, b) => {
     const da = parseYear(a.date);

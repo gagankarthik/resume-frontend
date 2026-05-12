@@ -1,0 +1,367 @@
+import {
+  Document, Packer, Paragraph, Table, TableCell, TableRow,
+  TextRun, AlignmentType, LevelFormat, WidthType, ShadingType,
+  VerticalAlign, LineRuleType, BorderStyle,
+} from 'docx';
+import { saveAs } from 'file-saver';
+import type { ResumeData } from '@/lib/types';
+import {
+  stripBullet,
+  normalizeMonthAbbr,
+  sortEducation,
+  getEdLocation,
+  formatLocation,
+  splitProseToBullets,
+  BODY_SPACING,
+  RIGHT_TAB,
+  TABLE_BORDER,
+} from './shared';
+
+// Georgia red — used for name and section headers.
+const COLOR = 'BA0C2F';
+
+const SP       = { before: 0, after: 0,   line: 240, lineRule: LineRuleType.AUTO } as const;
+const SP_AFTER = { before: 0, after: 80,  line: 240, lineRule: LineRuleType.AUTO } as const;
+
+function resolveJobLocation(raw: string): string {
+  const f = formatLocation(raw ?? '');
+  return /^(remote|work from home|wfh|n\/a)$/i.test(f.trim()) ? '' : f;
+}
+
+// ── Paragraph helpers ──────────────────────────────────────────────────────
+
+const sectionHdr = (label: string) =>
+  new Paragraph({
+    alignment: AlignmentType.LEFT,
+    spacing: { before: 240, after: 80, line: 240, lineRule: LineRuleType.AUTO },
+    border: {
+      bottom: { color: COLOR, space: 1, style: BorderStyle.SINGLE, size: 12 },
+    },
+    children: [
+      new TextRun({
+        text: label.toUpperCase(),
+        bold: true,
+        size: 24,
+        color: COLOR,
+        font: 'Georgia',
+      }),
+    ],
+  });
+
+const plain = (text: string) =>
+  new Paragraph({
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: SP,
+    children: [new TextRun({ text, font: 'Georgia', size: 22 })],
+  });
+
+const italic = (text: string) =>
+  new Paragraph({
+    spacing: SP,
+    children: [new TextRun({ text, italics: true, font: 'Georgia', size: 22 })],
+  });
+
+const bulletPara = (text: string) =>
+  new Paragraph({
+    numbering: { reference: 'georgiaBullet', level: 0 },
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: BODY_SPACING,
+    children: [new TextRun({ text: stripBullet(text), font: 'Georgia', size: 22 })],
+  });
+
+const blankLine = () =>
+  new Paragraph({
+    spacing: { before: 0, after: 60, line: 240, lineRule: LineRuleType.AUTO },
+    children: [],
+  });
+
+// ── Employment history ─────────────────────────────────────────────────────
+
+function buildEmployment(data: ResumeData): Paragraph[] {
+  const paras: Paragraph[] = [];
+  if (!data.employmentHistory?.length) return paras;
+
+  data.employmentHistory.forEach((job, idx) => {
+    try {
+      const loc    = resolveJobLocation(job.location ?? '');
+      const period = normalizeMonthAbbr(job.workPeriod ?? '');
+
+      if (idx > 0) paras.push(blankLine());
+
+      paras.push(
+        new Paragraph({
+          tabStops: [RIGHT_TAB],
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: SP,
+          children: [
+            new TextRun({ text: job.companyName ?? 'Company', bold: true, size: 24, font: 'Georgia' }),
+            new TextRun({ text: '\t' }),
+            new TextRun({ text: period, size: 22, font: 'Georgia' }),
+          ],
+        }),
+      );
+
+      paras.push(
+        new Paragraph({
+          tabStops: [RIGHT_TAB],
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: SP_AFTER,
+          children: [
+            new TextRun({ text: job.roleName ?? 'Role', italics: true, size: 22, font: 'Georgia' }),
+            ...(loc
+              ? [new TextRun({ text: '\t' }), new TextRun({ text: loc, size: 22, font: 'Georgia' })]
+              : []),
+          ],
+        }),
+      );
+
+      // Combine responsibilities + description, fall back to sentence-splitting
+      // for prose-only entries so every job gets bullet points.
+      const rawPoints: string[] = [
+        ...(job.responsibilities ?? []),
+        ...(job.description && !(job.responsibilities ?? []).length ? [job.description] : []),
+      ].filter(r => r && r.trim());
+      const points = rawPoints.flatMap(splitProseToBullets);
+      points.forEach(r => paras.push(bulletPara(r)));
+
+      if (job.keyTechnologies) {
+        paras.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: SP,
+            children: [
+              new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Georgia' }),
+              new TextRun({ text: job.keyTechnologies, size: 20, font: 'Georgia' }),
+            ],
+          }),
+        );
+      }
+    } catch {
+      paras.push(plain(`[${job.companyName ?? 'Employment entry'} could not be rendered]`));
+    }
+  });
+
+  return paras;
+}
+
+// ── Education ──────────────────────────────────────────────────────────────
+
+function buildEducation(data: ResumeData): Paragraph[] {
+  const sorted = sortEducation(data.education ?? []);
+  return sorted.map(edu => {
+    const degreeText = [edu.degree, edu.areaOfStudy ? `in ${edu.areaOfStudy}` : ''].filter(Boolean).join(' ');
+    const loc        = getEdLocation(edu.location ?? '');
+    const school     = [edu.school, loc].filter(Boolean).join(', ');
+    const date       = edu.date ?? '';
+    return new Paragraph({
+      tabStops: [RIGHT_TAB],
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: SP_AFTER,
+      children: [
+        ...(degreeText ? [new TextRun({ text: degreeText, bold: true, size: 22, font: 'Georgia' })] : []),
+        ...(school     ? [new TextRun({ text: (degreeText ? ' — ' : '') + school, size: 22, font: 'Georgia' })] : []),
+        ...(date       ? [new TextRun({ text: '\t' }), new TextRun({ text: date, size: 22, font: 'Georgia' })] : []),
+      ],
+    });
+  });
+}
+
+// ── Technical Skills — Area | Skills table ─────────────────────────────────
+
+type SkillRow = { area: string; skills: string };
+
+function collectSkillRows(data: ResumeData): SkillRow[] {
+  const rows: SkillRow[] = [];
+  (data.skillCategories ?? []).forEach(c => {
+    const list = Array.isArray(c.skills) ? c.skills.filter(s => s?.trim()) : [];
+    if (list.length) rows.push({ area: c.categoryName ?? 'Skills', skills: list.join(', ') });
+  });
+  if (data.technicalSkills) {
+    Object.entries(data.technicalSkills).forEach(([k, v]) => {
+      const list = Array.isArray(v) ? v.filter(s => s?.trim()).join(', ') : (typeof v === 'string' ? v : '');
+      if (list) rows.push({ area: k, skills: list });
+    });
+  }
+  return rows;
+}
+
+const skillCell = (text: string, opts: { bold?: boolean; header?: boolean; width: number }) =>
+  new TableCell({
+    width: { size: opts.width, type: WidthType.DXA },
+    shading: opts.header ? { fill: 'FFF7E6', type: ShadingType.CLEAR } : undefined,
+    verticalAlign: VerticalAlign.CENTER,
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 40, after: 40, line: 240, lineRule: LineRuleType.AUTO },
+        children: [
+          new TextRun({
+            text,
+            bold: opts.bold ?? opts.header,
+            color: opts.header ? 'BA0C2F' : undefined,
+            font: 'Georgia',
+            size: 22,
+          }),
+        ],
+      }),
+    ],
+  });
+
+function buildSkillsTable(data: ResumeData): Table | null {
+  const rows = collectSkillRows(data);
+  if (!rows.length) return null;
+
+  const AREA_W   = 3000;
+  const SKILLS_W = 7800;
+
+  return new Table({
+    columnWidths: [AREA_W, SKILLS_W],
+    width: { size: 0, type: WidthType.AUTO },
+    borders: {
+      top: TABLE_BORDER, bottom: TABLE_BORDER, left: TABLE_BORDER,
+      right: TABLE_BORDER, insideHorizontal: TABLE_BORDER, insideVertical: TABLE_BORDER,
+    },
+    rows: [
+      new TableRow({
+        tableHeader: true,
+        children: [
+          skillCell('Area',   { header: true, width: AREA_W }),
+          skillCell('Skills', { header: true, width: SKILLS_W }),
+        ],
+      }),
+      ...rows.map(r => new TableRow({
+        cantSplit: true,
+        children: [
+          skillCell(r.area,   { bold: true, width: AREA_W }),
+          skillCell(r.skills, { width: SKILLS_W }),
+        ],
+      })),
+    ],
+  });
+}
+
+// ── Certifications ─────────────────────────────────────────────────────────
+
+function buildCertifications(data: ResumeData): Paragraph[] {
+  if (!data.certifications?.length) return [];
+  return data.certifications.map(cert => {
+    const parts: string[] = [];
+    if (cert.issuedBy) parts.push(cert.issuedBy);
+    if (cert.dateObtained) parts.push(cert.dateObtained);
+    const suffix = parts.length ? ` — ${parts.join(' • ')}` : '';
+    return new Paragraph({
+      numbering: { reference: 'georgiaBullet', level: 0 },
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: BODY_SPACING,
+      children: [
+        new TextRun({ text: cert.name ?? '', bold: true, size: 22, font: 'Georgia' }),
+        ...(suffix ? [new TextRun({ text: suffix, size: 22, font: 'Georgia' })] : []),
+      ],
+    });
+  });
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────
+
+export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
+  const children: (Paragraph | Table)[] = [];
+
+  // Name — centered, red
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 200, line: 240, lineRule: LineRuleType.AUTO },
+      border: {
+        bottom: { color: COLOR, space: 4, style: BorderStyle.SINGLE, size: 18 },
+      },
+      children: [
+        new TextRun({
+          text: (data.name ?? 'Candidate Name').toUpperCase(),
+          bold: true,
+          size: 44,
+          color: COLOR,
+          font: 'Georgia',
+        }),
+      ],
+    }),
+  );
+
+  if (data.title) {
+    children.push(italic(data.title));
+    children.push(blankLine());
+  }
+
+  if ((data.employmentHistory?.length ?? 0) > 0) {
+    children.push(sectionHdr('Employment History'));
+    children.push(...buildEmployment(data));
+  }
+
+  const eduParas = buildEducation(data);
+  if (eduParas.length) {
+    children.push(sectionHdr('Education'));
+    children.push(...eduParas);
+  }
+
+  if ((data.professionalSummary?.length ?? 0) > 0) {
+    children.push(sectionHdr('Professional Summary'));
+    (data.professionalSummary ?? [])
+      .flatMap(splitProseToBullets)
+      .forEach(pt => children.push(bulletPara(pt)));
+  }
+
+  const skillsTable = buildSkillsTable(data);
+  if (skillsTable) {
+    children.push(sectionHdr('Technical Skills'));
+    children.push(skillsTable);
+  }
+
+  const certParas = buildCertifications(data);
+  if (certParas.length) {
+    children.push(sectionHdr('Certifications'));
+    children.push(...certParas);
+  }
+
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia' }, size: 22 },
+        },
+      },
+      paragraphStyles: [{
+        id: 'ListParagraph',
+        name: 'List Paragraph',
+        basedOn: 'Normal',
+        quickFormat: true,
+        paragraph: { indent: { left: 360, hanging: 360 }, contextualSpacing: true },
+      }],
+    },
+    numbering: {
+      config: [{
+        reference: 'georgiaBullet',
+        levels: [{
+          level: 0,
+          format: LevelFormat.BULLET,
+          text: '•',
+          alignment: AlignmentType.LEFT,
+          style: {
+            paragraph: { indent: { left: 360, hanging: 360 } },
+            run: { font: 'Georgia', size: 22 },
+          },
+        }],
+      }],
+    },
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840 },
+          margin: { top: 720, right: 720, bottom: 720, left: 720, header: 288, footer: 288, gutter: 0 },
+        },
+      },
+      children,
+    }],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `${data.name ?? 'Resume'}_Georgia.docx`);
+}
