@@ -194,14 +194,18 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
                   const period = normalizeMonthAbbr(job.workPeriod ?? '');
                   return (
                     <div key={i} className="mb-6">
-                      <div className="flex justify-between items-baseline">
-                        <h3 className="font-bold text-lg text-blue-900">{job.companyName || 'Company'}</h3>
-                        <span className="text-gray-700 font-semibold text-sm whitespace-nowrap ml-4">{period}</span>
-                      </div>
-                      <div className="flex justify-between items-baseline">
-                        <p className="font-medium text-gray-800">{job.roleName || 'Role'}</p>
-                        {loc && <span className="text-gray-600 text-sm whitespace-nowrap ml-4">{loc}</span>}
-                      </div>
+                      {(job.companyName || period) && (
+                        <div className="flex justify-between items-baseline">
+                          {job.companyName && <h3 className="font-bold text-lg text-blue-900">{job.companyName}</h3>}
+                          {period && <span className="text-gray-700 font-semibold text-sm whitespace-nowrap ml-4">{period}</span>}
+                        </div>
+                      )}
+                      {(job.roleName || loc) && (
+                        <div className="flex justify-between items-baseline">
+                          {job.roleName && <p className="font-medium text-gray-800">{job.roleName}</p>}
+                          {loc && <span className="text-gray-600 text-sm whitespace-nowrap ml-4">{loc}</span>}
+                        </div>
+                      )}
                       {dept && <p className="text-sm text-gray-700 mt-0.5">{dept}</p>}
                       {(() => {
                         const rawPoints = (job.responsibilities ?? []).filter(r => r.trim());

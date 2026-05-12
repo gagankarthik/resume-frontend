@@ -124,25 +124,23 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                 const period = normalizeMonthAbbr(job.workPeriod ?? '');
                 const dept = (job.department ?? '').trim();
                 const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-                // If the LLM dropped narrative content into `description` instead of
-                // responsibilities (common for prose-style job entries), promote it
-                // into the bullet list rather than rendering as a separate paragraph.
-                const rawResps = liveResps.length
-                  ? liveResps
-                  : (job.description?.trim() ? [job.description] : []);
-                const mainResps = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
+                const mainResps = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 12 : 0 }}>
                     {/* Company + Period */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 14 }}>{job.companyName || 'Company'}</span>
-                      <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', marginLeft: 12 }}>{period}</span>
-                    </div>
+                    {(job.companyName || period) && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        {job.companyName && <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 14 }}>{job.companyName}</span>}
+                        {period && <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', marginLeft: 12 }}>{period}</span>}
+                      </div>
+                    )}
                     {/* Role + Location */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 13 }}>{job.roleName || 'Role'}</span>
-                      {loc && <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', marginLeft: 12 }}>{loc}</span>}
-                    </div>
+                    {(job.roleName || loc) && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        {job.roleName && <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 13 }}>{job.roleName}</span>}
+                        {loc && <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 13, whiteSpace: 'nowrap', marginLeft: 12 }}>{loc}</span>}
+                      </div>
+                    )}
                     {dept && <p style={{ margin: '2px 0', color: '#555', fontSize: 12 }}>{dept}</p>}
 
                     {/* Main responsibilities — sub-bullets (○) grouped, then prose-split */}

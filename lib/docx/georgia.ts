@@ -115,13 +115,8 @@ function buildEmployment(data: ResumeData): Paragraph[] {
       );
 
       // Responsibilities → bullets (sentence-split per item).
-      // If `responsibilities` is empty but `description` has narrative content,
-      // promote it into the bullet list (never rendered as a separate paragraph).
       const liveResps = (job.responsibilities ?? []).filter(r => r && r.trim());
-      const rawPoints = liveResps.length
-        ? liveResps
-        : (job.description?.trim() ? [job.description] : []);
-      const points = rawPoints.flatMap(splitProseToBullets);
+      const points = liveResps.flatMap(splitProseToBullets);
       points.forEach(r => paras.push(bulletPara(r)));
 
       // Per-job projects (consulting structure)

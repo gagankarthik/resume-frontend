@@ -161,12 +161,8 @@ function buildEmployment(data: ResumeData): Paragraph[] {
       );
 
       // Responsibility bullets: group sub-bullets first, then prose-split per item.
-      // Promote `description` into the bullet list when responsibilities is empty.
       const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-      const rawResps = liveResps.length
-        ? liveResps
-        : (job.description?.trim() ? [job.description] : []);
-      const grouped = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
+      const grouped = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
       grouped.forEach(r => paras.push(bulletPara(r)));
 
       // Sub-projects (consulting structure)

@@ -245,12 +245,8 @@ function buildEmploymentHistory(data: ResumeData): Paragraph[] {
       if (dept) paras.push(plain(dept));
 
       // Main responsibilities → bullets; sub-bullets (○) grouped, prose-split per item.
-      // Promote `description` into the bullet list when responsibilities is empty.
       const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-      const rawResps = liveResps.length
-        ? liveResps
-        : (job.description?.trim() ? [job.description] : []);
-      const mainResps = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
+      const mainResps = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
       if (mainResps.length) {
         paras.push(boldLabel('Responsibilities'));
         mainResps.forEach(r => paras.push(bulletPara(r)));

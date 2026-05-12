@@ -155,10 +155,7 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                 const loc    = resolveLocation(job.location ?? '');
                 const period = normalizeMonthAbbr(job.workPeriod ?? '');
                 const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-                const rawPoints = liveResps.length
-                  ? liveResps
-                  : (job.description?.trim() ? [job.description] : []);
-                const grouped = groupResponsibilities(rawPoints).flatMap(splitProseToBullets);
+                const grouped = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 14 : 0 }}>
 

@@ -18,7 +18,6 @@ import type {
   TrainingEntry,
   ReferenceEntry,
 } from './types';
-import { splitProseToBullets } from '@/formatters/shared/utils';
 
 // Build a "Start – End" period string when both dates are present.
 function buildPeriod(start?: string, end?: string, isCurrent?: boolean): string | undefined {
@@ -74,27 +73,13 @@ export function mapToResumeData(api: APIResponse): ResumeData {
   const employmentHistory: OhioEmploymentEntry[] = (api.work_experience ?? []).map(w => {
     const extra = w as Record<string, unknown>;
 
-    // Combine bullets from responsibilities + achievements. If both are empty,
-    // promote `description` into responsibilities (sentence-split) so the editor
-    // and previews both see populated entries — the LLM often parks duty text
-    // in description for prose-style job entries.
-    const combined = [
+    // Combine bullets from responsibilities + achievements. `description` is
+    // intentionally NOT promoted into the bullet list — if the parser only
+    // returned prose narrative, the job renders without a Responsibilities block.
+    const responsibilities = [
       ...(w.responsibilities ?? []),
       ...(w.achievements ?? []),
     ].filter(r => r && r.trim());
-
-    let responsibilities: string[];
-    let description: string | undefined;
-    if (combined.length > 0) {
-      responsibilities = combined;
-      description = w.description;
-    } else if (w.description && w.description.trim()) {
-      responsibilities = splitProseToBullets(w.description);
-      description = undefined; // moved into responsibilities to avoid duplication
-    } else {
-      responsibilities = [];
-      description = w.description;
-    }
 
     return {
       companyName: w.company_name,
@@ -102,7 +87,7 @@ export function mapToResumeData(api: APIResponse): ResumeData {
       roleName: w.job_title,
       location: w.location,
       department: w.department,
-      description,
+      description: w.description,
       responsibilities,
       keyTechnologies: w.technologies_used?.join(', '),
       projects: Array.isArray(extra.projects) ? (extra.projects as Record<string, unknown>[]).map(p => ({

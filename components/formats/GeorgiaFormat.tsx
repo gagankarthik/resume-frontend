@@ -123,15 +123,8 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc    = resolveLocation(job.location ?? '');
                 const period = normalizeMonthAbbr(job.workPeriod ?? '');
-                // Responsibilities first; if the LLM put narrative content into
-                // `description` instead (no per-job bullets in the source), promote
-                // it into the bullet list. We never render description as a separate
-                // paragraph — the data just becomes responsibilities visually.
                 const liveResps = (job.responsibilities ?? []).filter(r => r && r.trim());
-                const rawPoints = liveResps.length
-                  ? liveResps
-                  : (job.description?.trim() ? [job.description] : []);
-                const points = rawPoints.flatMap(splitProseToBullets);
+                const points = liveResps.flatMap(splitProseToBullets);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 14 : 0 }}>
 
