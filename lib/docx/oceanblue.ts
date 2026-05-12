@@ -12,6 +12,7 @@ import {
   getEdLocation,
   formatLocation,
   groupResponsibilities,
+  splitBulletItems,
   BODY_SPACING,
   RIGHT_TAB,
 } from './shared';
@@ -452,10 +453,12 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
     );
   }
 
-  // Professional Summary — justified
+  // Professional Summary — bulleted list (matches preview rendering)
   if ((data.professionalSummary?.length ?? 0) > 0) {
     children.push(sectionHdr('Professional Summary'));
-    (data.professionalSummary ?? []).forEach(pt => children.push(plain(pt)));
+    (data.professionalSummary ?? [])
+      .flatMap(pt => splitBulletItems(pt))
+      .forEach(pt => children.push(bulletPara(pt)));
   }
 
   // Technical Skills

@@ -21,15 +21,32 @@ export function normalizeMonthAbbr(s: string): string {
 
 export function splitBulletItems(s: string): string[] {
   if (!s) return [];
-  // Split on newlines containing bullets, or semicolons if no newlines
+
+  // 1. Multi-line: each line is its own bullet.
   const lines = s.split(/\n/).map(l => l.trim()).filter(Boolean);
   if (lines.length > 1) {
-    return lines.map(stripBullet).filter(Boolean);
+    return lines.flatMap(splitInlineBullets).map(stripBullet).filter(Boolean);
   }
-  // Try semicolons
+
+  // 2. Single line with inline bullet markers (•, ●, ▪, etc.) — split on them.
+  const inline = splitInlineBullets(s);
+  if (inline.length > 1) return inline.map(stripBullet).filter(Boolean);
+
+  // 3. " | " separator (legacy backend output).
+  const piped = s.split(/\s*\|\s*/);
+  if (piped.length > 1) return piped.map(stripBullet).filter(Boolean);
+
+  // 4. Semicolons.
   const semi = s.split(/;\s*/);
   if (semi.length > 1) return semi.map(stripBullet).filter(Boolean);
+
   return [stripBullet(s)];
+}
+
+function splitInlineBullets(s: string): string[] {
+  // Split on inline bullet glyphs that appear mid-line, keeping content between them.
+  const parts = s.split(/\s*[•●▪‣◦⁃∙]\s+/).map(p => p.trim()).filter(Boolean);
+  return parts.length > 0 ? parts : [s];
 }
 
 export function sortEducation(education: OhioEducationEntry[]): OhioEducationEntry[] {

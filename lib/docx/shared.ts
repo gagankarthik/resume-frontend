@@ -47,9 +47,30 @@ export const normalizeMonthAbbr = (s = '') => {
 
 export const splitBulletItems = (t = '') => {
   if (!t || typeof t !== 'string') return [t];
-  if (!t.includes('•') && !t.includes(' • ')) return [t];
-  return t.split(/\s*[••]\s*/).map(s => s.trim()).filter(Boolean);
+
+  // 1. Newline-separated bullets (preferred backend format).
+  const lines = t.split(/\n/).map(s => s.trim()).filter(Boolean);
+  if (lines.length > 1) {
+    return lines.flatMap(splitOnGlyph).map(s => s.replace(/^[•●▪‣◦⁃∙\-\*]\s*/, '').trim()).filter(Boolean);
+  }
+
+  // 2. Inline bullet glyphs.
+  const byGlyph = splitOnGlyph(t);
+  if (byGlyph.length > 1) return byGlyph;
+
+  // 3. Legacy " | " separator.
+  const piped = t.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean);
+  if (piped.length > 1) return piped;
+
+  // 4. Semicolons — matches preview splitter so DOCX output stays in sync.
+  const semi = t.split(/;\s*/).map(s => s.trim()).filter(Boolean);
+  if (semi.length > 1) return semi;
+
+  return [t];
 };
+
+const splitOnGlyph = (s: string): string[] =>
+  s.split(/\s*[•●▪‣◦⁃∙]\s*/).map(p => p.trim()).filter(Boolean);
 
 // ── Education sorting ──────────────────────────────────────────────────────
 
