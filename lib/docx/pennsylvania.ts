@@ -6,7 +6,7 @@ import {
 import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
 import {
-  stripBullet, normalizeMonthAbbr, splitBulletItems, sortEducation,
+  stripBullet, normalizeMonthAbbr, splitProseToBullets, sortEducation,
   formatLocation, getEdLocation, formatProjectTitle,
   groupResponsibilities,
   BODY_SPACING, RIGHT_TAB, TABLE_BORDER,
@@ -249,8 +249,11 @@ function buildEmploymentHistory(data: ResumeData): Paragraph[] {
 
       if (dept) paras.push(plain(dept));
 
-      // Main responsibilities → bullets; sub-bullets (○) grouped comma-joined
-      const mainResps = groupResponsibilities((job.responsibilities ?? []).filter(r => r.trim()));
+      // Main responsibilities → bullets; sub-bullets (○) grouped, prose-split per item.
+      // Falls back to description when responsibilities/achievements are empty.
+      const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
+      const rawResps = liveResps.length ? liveResps : (job.description ? [job.description] : []);
+      const mainResps = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
       if (mainResps.length) {
         paras.push(boldLabel('Responsibilities'));
         mainResps.forEach(r => paras.push(bulletPara(r)));
@@ -441,7 +444,7 @@ export async function buildPADocx(data: ResumeData): Promise<void> {
         spacer(),
         tightHdr('Professional Summary'),
         ...(data.professionalSummary ?? []).flatMap(pt =>
-          splitBulletItems(pt).map(
+          splitProseToBullets(pt).map(
             item =>
               new Paragraph({
                 numbering: { reference: 'resumeBullet', level: 0 },

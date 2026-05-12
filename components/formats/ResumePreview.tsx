@@ -3,6 +3,7 @@
 import React from 'react';
 import type { ResumeData } from '@/lib/types';
 import { stripBullet, normalizeMonthAbbr, sortEducation, getEdLocation, formatLocation, groupResponsibilities } from '@/lib/docx/shared';
+import { splitProseToBullets } from '@/formatters/shared/utils';
 import OceanblueFormat from './OceanblueFormat';
 import GeorgiaFormat from './GeorgiaFormat';
 
@@ -122,7 +123,15 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                 const loc = resolveLocation(job.location ?? '');
                 const period = normalizeMonthAbbr(job.workPeriod ?? '');
                 const dept = (job.department ?? '').trim();
-                const mainResps = (job.responsibilities ?? []).filter(r => r.trim());
+                const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
+                // Fall back to description when the LLM placed bullets in the
+                // description field instead of responsibilities/achievements.
+                const rawResps = liveResps.length
+                  ? liveResps
+                  : (job.description ? [job.description] : []);
+                // groupResponsibilities first (preserves sub-bullet comma grouping),
+                // then splitProseToBullets per item to break multi-sentence prose.
+                const mainResps = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 12 : 0 }}>
                     {/* Company + Period */}
@@ -137,15 +146,15 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                     </div>
                     {dept && <p style={{ margin: '2px 0', color: '#555', fontSize: 12 }}>{dept}</p>}
 
-                    {/* Main responsibilities — sub-bullets (○) grouped comma-joined */}
+                    {/* Main responsibilities — sub-bullets (○) grouped, then prose-split */}
                     {mainResps.length > 0 && (
                       <div style={{ marginTop: 4 }}>
                         <p style={{ margin: '0 0 2px', fontWeight: 700, color: ACCENT, fontSize: 12 }}>Responsibilities</p>
                         <div style={{ paddingLeft: 4 }}>
-                          {groupResponsibilities(mainResps).map((r, j) => (
+                          {mainResps.map((r, j) => (
                             <div key={j} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 2 }}>
                               <span style={{ flexShrink: 0, width: 14, color: '#333', fontSize: 12, lineHeight: '18px' }}>•</span>
-                              <span style={{ fontSize: 12, color: '#222', lineHeight: '18px' }}>{r}</span>
+                              <span style={{ fontSize: 12, color: '#222', lineHeight: '18px' }}>{stripBullet(r)}</span>
                             </div>
                           ))}
                         </div>
@@ -197,13 +206,66 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
             </section>
           )}
 
+          {/* ── Standalone Projects ── */}
+          {(resumeData.projects?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 18 }}>
+              <SectionHeader label="Projects" />
+              {resumeData.projects!.map((proj, i) => (
+                <div key={i} style={{ marginBottom: i < resumeData.projects!.length - 1 ? 10 : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ color: ACCENT, fontFamily: 'Times New Roman, serif', fontWeight: 700, fontSize: 13 }}>{proj.name}</span>
+                    {proj.date && (
+                      <span style={{ fontSize: 11, color: '#555', whiteSpace: 'nowrap', marginLeft: 10 }}>{proj.date}</span>
+                    )}
+                  </div>
+                  {proj.role && (
+                    <p style={{ margin: '1px 0 3px', fontSize: 12, fontStyle: 'italic', color: '#555' }}>{proj.role}</p>
+                  )}
+                  {proj.description && (
+                    <p style={{ margin: '2px 0 3px', fontSize: 12, color: '#222', lineHeight: 1.5 }}>{proj.description}</p>
+                  )}
+                  {(proj.highlights?.length ?? 0) > 0 && (
+                    <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                      {proj.highlights!.flatMap(splitProseToBullets).map((h, j) => (
+                        <li key={j} style={{ fontSize: 12, color: '#222', lineHeight: 1.5, marginBottom: 1 }}>{stripBullet(h)}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {(proj.technologies?.length ?? 0) > 0 && (
+                    <p style={{ margin: '3px 0 0', fontSize: 11, color: '#555' }}>
+                      <span style={{ fontWeight: 700 }}>Technologies: </span>
+                      {proj.technologies!.join(', ')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+
           {/* ── Professional Summary ── */}
           {(resumeData.professionalSummary?.length ?? 0) > 0 && (
             <section style={{ marginBottom: 18 }}>
               <SectionHeader label="Professional Summary" />
-              {(resumeData.professionalSummary ?? []).map((pt, i) => (
-                <p key={i} style={{ margin: '0 0 4px', color: '#222', fontSize: 12, lineHeight: 1.5 }}>{pt}</p>
-              ))}
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {(resumeData.professionalSummary ?? []).flatMap(splitProseToBullets).map((pt, i) => (
+                  <li key={i} style={{ margin: '0 0 4px', color: '#222', fontSize: 12, lineHeight: 1.5 }}>{pt}</li>
+                ))}
+              </ul>
+              {/* Extra summary subsections — e.g. "Areas of Expertise" */}
+              {(resumeData.summarySections ?? resumeData.subsections ?? []).map((sub, i) => {
+                const items = (sub.content ?? []).filter(c => c.trim());
+                if (!sub.title && !items.length) return null;
+                return (
+                  <div key={i} style={{ marginTop: 6 }}>
+                    {sub.title && (
+                      <p style={{ margin: '0 0 2px', fontWeight: 700, color: ACCENT, fontSize: 12 }}>{sub.title}</p>
+                    )}
+                    {items.length > 0 && (
+                      <p style={{ margin: 0, color: '#222', fontSize: 12 }}>{items.map(r => stripBullet(r)).join(', ')}</p>
+                    )}
+                  </div>
+                );
+              })}
             </section>
           )}
 

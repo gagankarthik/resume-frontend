@@ -49,36 +49,38 @@ function splitInlineBullets(s: string): string[] {
   return parts.length > 0 ? parts : [s];
 }
 
-// Last-resort splitter for prose paragraphs that have no bullet/newline/pipe/semicolon
-// separators — splits on sentence boundaries so long summary/responsibility blobs
-// render as a bullet list. Only kicks in when the input is a paragraph (≥ 2 sentences
-// and ≥ 80 chars) so short single-sentence items aren't shredded by abbreviations.
+// Sentence-split helper. Falls back to one chunk if the input is short or one sentence.
+// Abbreviations like Sr., Inc., Ph.D., e.g. are re-merged so titles don't get chopped.
 const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
 
-export function splitProseToBullets(s: string): string[] {
-  const base = splitBulletItems(s);
-  if (base.length > 1) return base;
-  const text = (base[0] ?? s).trim();
-  if (text.length < 80) return [text];
+function sentenceSplit(text: string): string[] {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (t.length < 80) return [t];
 
   const parts: string[] = [];
   let buf = '';
-  // Split on `.`, `!`, or `?` followed by whitespace and an uppercase letter or digit.
-  const tokens = text.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
-  for (const t of tokens) {
-    const candidate = buf ? `${buf} ${t}` : t;
-    // Merge back if the previous chunk ended on a known abbreviation.
+  const tokens = t.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
+  for (const tok of tokens) {
     if (ABBREVS.test(buf)) {
-      buf = candidate;
+      buf = `${buf} ${tok}`;
       continue;
     }
     if (buf) parts.push(buf.trim());
-    buf = t;
+    buf = tok;
   }
   if (buf) parts.push(buf.trim());
 
-  const cleaned = parts.map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
-  return cleaned.length > 1 ? cleaned : [text];
+  const cleaned = parts.filter(Boolean);
+  return cleaned.length > 1 ? cleaned : [t];
+}
+
+// Splits prose-or-bulleted input into bullets. First applies the structured splitters
+// (newlines / glyphs / | / ;) via splitBulletItems, then sentence-splits each resulting
+// chunk so multi-sentence pre-bullet text doesn't render as one mega-bullet.
+export function splitProseToBullets(s: string): string[] {
+  if (!s) return [];
+  const items = splitBulletItems(s);
+  return items.flatMap(sentenceSplit).filter(Boolean);
 }
 
 export function sortEducation(education: OhioEducationEntry[]): OhioEducationEntry[] {

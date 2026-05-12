@@ -101,17 +101,24 @@ export function mapToResumeData(api: APIResponse): ResumeData {
       if (clean.length > 0) cats.push({ categoryName: name, skills: clean });
     };
 
-    addCat('Programming Languages', skills.programming_languages);
-    addCat('Frameworks & Libraries', skills.frameworks_and_libraries);
-    addCat('Databases', skills.databases);
-    addCat('Cloud Platforms', skills.cloud_platforms);
-    addCat('Tools & Platforms', skills.tools_and_platforms);
-    addCat('Operating Systems', skills.operating_systems);
-    addCat('Methodologies', skills.methodologies);
-    addCat('Domain Skills', skills.domain_skills);
-    addCat('Design Skills', skills.design_skills);
-    addCat('Soft Skills', skills.soft_skills);
-    addCat('Other Skills', skills.other_skills);
+    // Prefer the free-form `categories` passthrough when the backend supplies it —
+    // that preserves the resume's original section names (e.g. "Cloud Datawarehouse").
+    // Otherwise fall back to the fixed Pydantic fields with our display labels.
+    if (Array.isArray(skills.categories) && skills.categories.length > 0) {
+      skills.categories.forEach(c => addCat(c?.name ?? 'Skills', c?.skills));
+    } else {
+      addCat('Programming Languages', skills.programming_languages);
+      addCat('Frameworks & Libraries', skills.frameworks_and_libraries);
+      addCat('Databases', skills.databases);
+      addCat('Cloud Platforms', skills.cloud_platforms);
+      addCat('Tools & Platforms', skills.tools_and_platforms);
+      addCat('Operating Systems', skills.operating_systems);
+      addCat('Methodologies', skills.methodologies);
+      addCat('Domain Skills', skills.domain_skills);
+      addCat('Design Skills', skills.design_skills);
+      addCat('Soft Skills', skills.soft_skills);
+      addCat('Other Skills', skills.other_skills);
+    }
 
     if (cats.length > 0) {
       skillCategories = cats;

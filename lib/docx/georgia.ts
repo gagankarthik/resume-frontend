@@ -124,13 +124,80 @@ function buildEmployment(data: ResumeData): Paragraph[] {
       const points = rawPoints.flatMap(splitProseToBullets);
       points.forEach(r => paras.push(bulletPara(r)));
 
+      // Per-job projects (consulting structure)
+      (job.projects ?? []).forEach((proj, pi) => {
+        const title    = proj.projectName || `Project ${pi + 1}`;
+        const subResps = (proj.projectResponsibilities ?? []).filter(r => r.trim());
+
+        paras.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: SP,
+            indent: { left: 360 },
+            children: [new TextRun({ text: title, bold: true, size: 22, font: 'Georgia' })],
+          }),
+        );
+
+        if (subResps.length) {
+          paras.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: SP,
+              indent: { left: 360 },
+              children: [
+                new TextRun({ text: subResps.map(r => stripBullet(r)).join(', '), size: 22, font: 'Georgia' }),
+              ],
+            }),
+          );
+        }
+
+        if (proj.keyTechnologies) {
+          paras.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: SP,
+              indent: { left: 360 },
+              children: [
+                new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Georgia' }),
+                new TextRun({ text: proj.keyTechnologies, size: 20, font: 'Georgia' }),
+              ],
+            }),
+          );
+        }
+      });
+
+      // Per-job subsections
+      (job.subsections ?? []).forEach(sub => {
+        if (sub.title) {
+          paras.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: SP,
+              children: [new TextRun({ text: sub.title + ':', bold: true, size: 22, font: 'Georgia' })],
+            }),
+          );
+        }
+        const items = (sub.content ?? []).filter(c => c.trim());
+        if (items.length) {
+          paras.push(
+            new Paragraph({
+              alignment: AlignmentType.JUSTIFIED,
+              spacing: SP,
+              children: [
+                new TextRun({ text: items.map(r => stripBullet(r)).join(', '), size: 22, font: 'Georgia' }),
+              ],
+            }),
+          );
+        }
+      });
+
       if (job.keyTechnologies) {
         paras.push(
           new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
             spacing: SP,
             children: [
-              new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Georgia' }),
+              new TextRun({ text: 'Key Technologies/Skills: ', bold: true, size: 20, font: 'Georgia' }),
               new TextRun({ text: job.keyTechnologies, size: 20, font: 'Georgia' }),
             ],
           }),
@@ -141,6 +208,92 @@ function buildEmployment(data: ResumeData): Paragraph[] {
     }
   });
 
+  return paras;
+}
+
+// ── Standalone projects ───────────────────────────────────────────────────
+
+function buildProjects(data: ResumeData): Paragraph[] {
+  const paras: Paragraph[] = [];
+  if (!data.projects?.length) return paras;
+
+  data.projects.forEach((proj, idx) => {
+    if (idx > 0) paras.push(blankLine());
+
+    paras.push(
+      new Paragraph({
+        tabStops: [RIGHT_TAB],
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: SP,
+        children: [
+          new TextRun({ text: proj.name ?? '', bold: true, size: 24, font: 'Georgia' }),
+          ...(proj.date
+            ? [new TextRun({ text: '\t' }), new TextRun({ text: proj.date, size: 22, font: 'Georgia' })]
+            : []),
+        ],
+      }),
+    );
+
+    if (proj.role) {
+      paras.push(
+        new Paragraph({
+          spacing: SP,
+          children: [new TextRun({ text: proj.role, italics: true, size: 22, font: 'Georgia' })],
+        }),
+      );
+    }
+
+    if (proj.description) paras.push(plain(proj.description));
+
+    (proj.highlights ?? [])
+      .flatMap(splitProseToBullets)
+      .forEach(h => paras.push(bulletPara(h)));
+
+    if ((proj.technologies ?? []).length) {
+      paras.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: SP,
+          children: [
+            new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Georgia' }),
+            new TextRun({ text: proj.technologies!.join(', '), size: 20, font: 'Georgia' }),
+          ],
+        }),
+      );
+    }
+  });
+
+  return paras;
+}
+
+// ── Summary subsections ───────────────────────────────────────────────────
+
+function buildSummarySections(data: ResumeData): Paragraph[] {
+  const subs = data.summarySections ?? data.subsections ?? [];
+  if (!subs.length) return [];
+  const paras: Paragraph[] = [];
+  subs.forEach(sub => {
+    const items = (sub.content ?? []).filter(c => c.trim());
+    if (!sub.title && !items.length) return;
+    if (sub.title) {
+      paras.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: SP,
+          children: [new TextRun({ text: sub.title, bold: true, size: 22, font: 'Georgia' })],
+        }),
+      );
+    }
+    if (items.length) {
+      paras.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: SP,
+          children: [new TextRun({ text: items.map(r => stripBullet(r)).join(', '), size: 22, font: 'Georgia' })],
+        }),
+      );
+    }
+  });
   return paras;
 }
 
@@ -296,6 +449,12 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
     children.push(...buildEmployment(data));
   }
 
+  const projParas = buildProjects(data);
+  if (projParas.length) {
+    children.push(sectionHdr('Projects'));
+    children.push(...projParas);
+  }
+
   const eduParas = buildEducation(data);
   if (eduParas.length) {
     children.push(sectionHdr('Education'));
@@ -307,6 +466,7 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
     (data.professionalSummary ?? [])
       .flatMap(splitProseToBullets)
       .forEach(pt => children.push(bulletPara(pt)));
+    children.push(...buildSummarySections(data));
   }
 
   const skillsTable = buildSkillsTable(data);

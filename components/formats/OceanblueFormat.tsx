@@ -11,7 +11,7 @@ import {
   groupResponsibilities,
   formatLocation,
 } from '@/lib/docx/shared';
-import { splitBulletItems } from '@/formatters/shared/utils';
+import { splitProseToBullets } from '@/formatters/shared/utils';
 
 const TEXT    = '#111111';
 const SUBTEXT = '#444444';
@@ -110,7 +110,7 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
             <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Professional Summary" />
               {(() => {
-                const items = (resumeData.professionalSummary ?? []).flatMap(p => splitBulletItems(p));
+                const items = (resumeData.professionalSummary ?? []).flatMap(splitProseToBullets);
                 return (
                   <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
                     {items.map((pt, i) => (
@@ -154,9 +154,11 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc    = resolveLocation(job.location ?? '');
                 const period = normalizeMonthAbbr(job.workPeriod ?? '');
-                const grouped = groupResponsibilities(
-                  (job.responsibilities ?? []).filter(r => r.trim()),
-                );
+                const rawPoints: string[] = [
+                  ...((job.responsibilities ?? []).filter(r => r.trim())),
+                  ...(job.description && !(job.responsibilities ?? []).filter(r => r.trim()).length ? [job.description] : []),
+                ];
+                const grouped = groupResponsibilities(rawPoints).flatMap(splitProseToBullets);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 14 : 0 }}>
 

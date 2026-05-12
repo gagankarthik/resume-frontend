@@ -102,6 +102,11 @@ export interface Skills {
   design_skills?: string[];
   languages_spoken?: string[];
   other_skills?: string[];
+  // Free-form passthrough: when the backend extracts the resume's original skill
+  // section names (e.g. "Cloud Datawarehouse", "Data Modeling Tool"), it can return
+  // them here and the frontend will render them verbatim instead of the fixed
+  // category names above.
+  categories?: { name?: string; skills?: string[] }[];
 }
 
 export interface Certification {

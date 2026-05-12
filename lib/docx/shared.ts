@@ -72,30 +72,35 @@ export const splitBulletItems = (t = '') => {
 const splitOnGlyph = (s: string): string[] =>
   s.split(/\s*[•●▪‣◦⁃∙]\s*/).map(p => p.trim()).filter(Boolean);
 
-// Prose paragraph → bullet list, falling back to sentence boundaries.
+// Prose paragraph → bullet list. First applies the structured splitters (newlines /
+// glyphs / | / ;), then sentence-splits each resulting chunk so multi-sentence
+// pre-bullet text doesn't render as one mega-bullet.
 const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
 
-export const splitProseToBullets = (s = ''): string[] => {
-  const base = splitBulletItems(s);
-  if (base.length > 1) return base;
-  const text = (base[0] ?? s).toString().trim();
-  if (text.length < 80) return [text];
+function sentenceSplit(text = ''): string[] {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (t.length < 80) return [t];
 
   const parts: string[] = [];
   let buf = '';
-  const tokens = text.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
-  for (const t of tokens) {
+  const tokens = t.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
+  for (const tok of tokens) {
     if (ABBREVS.test(buf)) {
-      buf = `${buf} ${t}`;
+      buf = `${buf} ${tok}`;
       continue;
     }
     if (buf) parts.push(buf.trim());
-    buf = t;
+    buf = tok;
   }
   if (buf) parts.push(buf.trim());
 
-  const cleaned = parts.map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
-  return cleaned.length > 1 ? cleaned : [text];
+  const cleaned = parts.filter(Boolean);
+  return cleaned.length > 1 ? cleaned : [t];
+}
+
+export const splitProseToBullets = (s = ''): string[] => {
+  if (!s) return [];
+  return splitBulletItems(s).flatMap(sentenceSplit).filter(Boolean);
 };
 
 // ── Education sorting ──────────────────────────────────────────────────────

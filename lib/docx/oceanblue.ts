@@ -12,7 +12,7 @@ import {
   getEdLocation,
   formatLocation,
   groupResponsibilities,
-  splitBulletItems,
+  splitProseToBullets,
   BODY_SPACING,
   RIGHT_TAB,
 } from './shared';
@@ -160,8 +160,11 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         }),
       );
 
-      // Responsibility bullets
-      const grouped = groupResponsibilities((job.responsibilities ?? []).filter(r => r.trim()));
+      // Responsibility bullets: group sub-bullets first, then prose-split per item;
+      // fall back to description when responsibilities/achievements are empty.
+      const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
+      const rawResps = liveResps.length ? liveResps : (job.description ? [job.description] : []);
+      const grouped = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
       grouped.forEach(r => paras.push(bulletPara(r)));
 
       // Sub-projects (consulting structure)
@@ -457,7 +460,7 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
   if ((data.professionalSummary?.length ?? 0) > 0) {
     children.push(sectionHdr('Professional Summary'));
     (data.professionalSummary ?? [])
-      .flatMap(pt => splitBulletItems(pt))
+      .flatMap(splitProseToBullets)
       .forEach(pt => children.push(bulletPara(pt)));
   }
 

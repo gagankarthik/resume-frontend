@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FiDownload, FiPrinter } from 'react-icons/fi';
 import type { ResumeData } from '@/lib/types';
 import {
-  stripBullet, normalizeMonthAbbr, splitBulletItems,
+  stripBullet, normalizeMonthAbbr, splitBulletItems, splitProseToBullets,
   sortEducation, formatEmploymentLocation, getEducationCountry, formatProjectParts,
 } from '@/formatters/shared/utils';
 import StateDownloadDialog from './StateDownloadDialog';
@@ -203,16 +203,29 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
                         {loc && <span className="text-gray-600 text-sm whitespace-nowrap ml-4">{loc}</span>}
                       </div>
                       {dept && <p className="text-sm text-gray-700 mt-0.5">{dept}</p>}
-                      {job.description && <p className="my-2 text-gray-800">{job.description}</p>}
-
-                      {(job.responsibilities?.length ?? 0) > 0 && (
-                        <div className="mt-2">
-                          <p className="font-semibold text-gray-700 text-sm mb-1">Responsibilities</p>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {job.responsibilities.map((r, j) => <li key={j} className="text-gray-800">{stripBullet(r)}</li>)}
-                          </ul>
-                        </div>
+                      {/* description renders as paragraph only when responsibilities exist;
+                          otherwise it's promoted to bullet points below */}
+                      {job.description && (job.responsibilities?.length ?? 0) > 0 && (
+                        <p className="my-2 text-gray-800">{job.description}</p>
                       )}
+
+                      {(() => {
+                        const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
+                        const rawPoints = [
+                          ...liveResps,
+                          ...(job.description && !liveResps.length ? [job.description] : []),
+                        ];
+                        const points = rawPoints.flatMap(splitProseToBullets);
+                        if (!points.length) return null;
+                        return (
+                          <div className="mt-2">
+                            <p className="font-semibold text-gray-700 text-sm mb-1">Responsibilities</p>
+                            <ul className="list-disc pl-5 space-y-1">
+                              {points.map((r, j) => <li key={j} className="text-gray-800">{stripBullet(r)}</li>)}
+                            </ul>
+                          </div>
+                        );
+                      })()}
 
                       {job.projects && job.projects.length > 0 && (
                         <div className="mt-3">
@@ -278,7 +291,7 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
                 {(resumeData.professionalSummary?.length ?? 0) > 0 && (
                   <div className="mb-4">
                     {(() => {
-                      const items = (resumeData.professionalSummary ?? []).flatMap(p => splitBulletItems(p));
+                      const items = (resumeData.professionalSummary ?? []).flatMap(splitProseToBullets);
                       return (
                         <ul className="space-y-1 pl-1">{items.map((item, i) => (
                           <li key={i} className="flex items-start text-gray-800 text-justify">

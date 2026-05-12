@@ -1,18 +1,49 @@
 'use client';
 
-import React, { useState } from 'react';
-import { FiDownload, FiPrinter } from 'react-icons/fi';
+import React from 'react';
 import type { ResumeData } from '@/lib/types';
 import {
-  stripBullet, normalizeMonthAbbr, splitProseToBullets,
-  sortEducation, formatEmploymentLocation, getEducationCountry,
-} from '@/formatters/shared/utils';
-import StateDownloadDialog from './StateDownloadDialog';
+  stripBullet,
+  normalizeMonthAbbr,
+  sortEducation,
+  getEdLocation,
+  formatLocation,
+} from '@/lib/docx/shared';
+import { splitProseToBullets } from '@/formatters/shared/utils';
 
-interface Props {
-  resumeData: ResumeData;
-  previewMode?: boolean;
+const TEXT    = '#111111';
+const SUBTEXT = '#444444';
+const BORDER  = '#cccccc';
+
+function resolveLocation(raw: string): string {
+  const f = formatLocation(raw ?? '');
+  return /^(remote|work from home|wfh|n\/a)$/i.test(f.trim()) ? '' : f;
 }
+
+function shortenLinkedIn(url: string): string {
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return `linkedin.com${u.pathname.replace(/\/$/, '')}`;
+  } catch {
+    return url;
+  }
+}
+
+const SectionHeader = ({ label }: { label: string }) => (
+  <p style={{
+    margin: '0 0 6px',
+    fontSize: 12,
+    fontWeight: 700,
+    color: TEXT,
+    textTransform: 'uppercase',
+    letterSpacing: '0.07em',
+    fontFamily: 'Calibri, Arial, sans-serif',
+    borderBottom: `1px solid ${BORDER}`,
+    paddingBottom: 3,
+  }}>
+    {label}
+  </p>
+);
 
 type SkillRow = { area: string; skills: string };
 
@@ -31,219 +62,307 @@ const collectSkillRows = (data: ResumeData): SkillRow[] => {
   return rows;
 };
 
-const GeorgiaFormat = React.forwardRef<HTMLDivElement, Props>(
-  ({ resumeData, previewMode = false }, _ref) => {
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const sortedEdu = sortEducation(resumeData.education ?? []);
-    const skillRows = collectSkillRows(resumeData);
+interface Props {
+  resumeData: ResumeData;
+}
 
-    return (
-      <>
-        <StateDownloadDialog
-          isOpen={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          resumeData={resumeData}
-          defaultFormat="georgia"
-        />
+const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
+  const sortedEdu  = sortEducation(resumeData.education ?? []);
+  const skillRows  = collectSkillRows(resumeData);
 
-        <div className={previewMode ? 'flex flex-col h-full' : 'max-w-4xl mx-auto'}>
+  const contactItems: string[] = [];
+  if (resumeData.email)    contactItems.push(resumeData.email);
+  if (resumeData.phone)    contactItems.push(resumeData.phone);
+  if (resumeData.linkedin) contactItems.push(shortenLinkedIn(resumeData.linkedin));
+  if (resumeData.location) contactItems.push(resumeData.location);
 
-          {/* Action bar */}
-          <div className={`sticky top-0 z-10 border-b border-gray-200 shadow-sm ${
-            previewMode ? 'bg-ga-red px-5 py-3' : 'bg-white px-6 py-4'
-          }`}>
-            {previewMode ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                  <span className="text-white text-sm font-semibold tracking-wide">Georgia Format</span>
-                  <span className="text-white/70 text-xs">— updates as you edit</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => window.print()}
-                    className="flex items-center px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium transition-all border border-white/20"
-                  >
-                    <FiPrinter className="mr-1.5" /> Print
-                  </button>
-                  <button
-                    onClick={() => setDialogOpen(true)}
-                    className="flex items-center px-3 py-1.5 bg-white text-ga-red hover:bg-ga-cream rounded-lg text-xs font-bold transition-all shadow-sm"
-                  >
-                    <FiDownload className="mr-1.5" /> Export
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="text-center mb-4">
-                  <h2 className="text-3xl font-bold text-ga-red mb-2">Georgia Format Resume</h2>
-                </div>
-                <div className="flex justify-center space-x-4">
-                  <button onClick={() => window.print()} className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center transition-colors">
-                    <FiPrinter className="mr-2" /> Print
-                  </button>
-                  <button onClick={() => setDialogOpen(true)} className="px-6 py-3 bg-ga-red hover:opacity-90 text-white rounded-lg flex items-center transition-colors">
-                    <FiDownload className="mr-2" /> Download Word
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+  return (
+    <div className="h-full overflow-y-auto bg-gray-100 px-4 py-5">
+      <div
+        className="bg-white mx-auto shadow-md rounded-lg overflow-hidden"
+        style={{ maxWidth: 760, fontFamily: 'Calibri, Arial, sans-serif', fontSize: 13, color: TEXT }}
+      >
+        {/* ── Header ── */}
+        <div style={{ padding: '22px 28px 16px' }}>
 
-          {/* Body */}
-          <div className={`bg-white print:shadow-none ${
-            previewMode
-              ? 'mx-4 my-4 rounded-xl shadow-md border border-gray-200 p-8'
-              : 'border-2 border-gray-200 rounded-2xl p-10 shadow-xl mt-6'
-          }`}
-            style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
-          >
+          {/* Name — centered */}
+          <h1 style={{
+            margin: '0 0 3px',
+            fontSize: 22,
+            fontWeight: 700,
+            color: TEXT,
+            letterSpacing: '0.04em',
+            textAlign: 'center',
+            textTransform: 'uppercase',
+          }}>
+            {resumeData.name || 'Full Name'}
+          </h1>
 
-            {/* Name header */}
-            <header className="mb-6 text-center">
-              <h1 className="text-4xl font-bold tracking-wide uppercase" style={{ color: 'var(--color-ga-red)' }}>
-                {resumeData.name || 'Candidate Name'}
-              </h1>
-              <div className="mt-2 h-0.5 mx-auto" style={{ background: 'var(--color-ga-red)', width: '60%' }} />
-            </header>
+          {/* Title — centered */}
+          {resumeData.title && (
+            <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: SUBTEXT, textAlign: 'center' }}>
+              {resumeData.title}
+            </p>
+          )}
 
-            {/* Employment History */}
-            {(resumeData.employmentHistory?.length ?? 0) > 0 && (
-              <section className="mb-6">
-                <SectionTitle label="Employment History" />
-                {resumeData.employmentHistory!.map((job, i) => {
-                  const loc = formatEmploymentLocation(job.location ?? '');
-                  const period = normalizeMonthAbbr(job.workPeriod ?? '');
-                  // Combine responsibilities + description so prose-only entries still get bullets.
-                  const rawPoints: string[] = [
-                    ...(job.responsibilities ?? []),
-                    ...(job.description && !(job.responsibilities ?? []).length ? [job.description] : []),
-                  ].filter(r => r && r.trim());
-                  const points = rawPoints.flatMap(splitProseToBullets);
-                  return (
-                    <div key={i} className="mb-5">
-                      <div className="flex justify-between items-baseline flex-wrap gap-1">
-                        <h3 className="font-bold text-lg" style={{ color: 'var(--color-ga-dark)' }}>{job.companyName}</h3>
-                        <span className="text-sm font-semibold text-gray-600 whitespace-nowrap">{period}</span>
-                      </div>
-                      <div className="flex justify-between items-baseline flex-wrap gap-1">
-                        <p className="italic text-gray-800">{job.roleName}</p>
-                        {loc && <span className="text-gray-600 text-sm">{loc}</span>}
-                      </div>
-                      {job.department && <p className="text-sm text-gray-600 mt-0.5">{job.department}</p>}
-                      {points.length > 0 && (
-                        <ul className="mt-2 space-y-1 list-disc pl-6">
-                          {points.map((r, j) => (
-                            <li key={j} className="text-gray-800 text-sm leading-snug">{stripBullet(r)}</li>
-                          ))}
-                        </ul>
-                      )}
-                      {job.keyTechnologies && (
-                        <p className="mt-2 text-sm text-gray-700">
-                          <span className="font-semibold">Technologies: </span>{job.keyTechnologies}
-                        </p>
-                      )}
+          {/* Contact row — centered */}
+          {contactItems.length > 0 && (
+            <p style={{ margin: 0, fontSize: 11, color: SUBTEXT, lineHeight: 1.6, textAlign: 'center' }}>
+              {contactItems.join('  |  ')}
+            </p>
+          )}
+        </div>
+
+        {/* ── Body ── */}
+        <div style={{ padding: '0 28px 24px' }}>
+
+          {/* Employment History */}
+          {(resumeData.employmentHistory?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Employment History" />
+              {resumeData.employmentHistory!.map((job, i) => {
+                const loc    = resolveLocation(job.location ?? '');
+                const period = normalizeMonthAbbr(job.workPeriod ?? '');
+                const rawPoints: string[] = [
+                  ...(job.responsibilities ?? []),
+                  ...(job.description && !(job.responsibilities ?? []).length ? [job.description] : []),
+                ].filter(r => r && r.trim());
+                const points = rawPoints.flatMap(splitProseToBullets);
+                return (
+                  <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 14 : 0 }}>
+
+                    {/* Company + Period */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontWeight: 700, fontSize: 13, color: TEXT }}>{job.companyName}</span>
+                      <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>{period}</span>
                     </div>
-                  );
-                })}
-              </section>
-            )}
 
-            {/* Education */}
-            {sortedEdu.length > 0 && (
-              <section className="mb-6">
-                <SectionTitle label="Education" />
-                <div className="space-y-2">
-                  {sortedEdu.map((edu, i) => (
-                    <div key={i} className="flex justify-between items-start">
-                      <div>
-                        <p className="font-semibold" style={{ color: 'var(--color-ga-dark)' }}>
-                          {edu.degree}{edu.areaOfStudy ? ` in ${edu.areaOfStudy}` : ''}
-                        </p>
-                        <p className="text-gray-700">{edu.school}</p>
-                      </div>
-                      <div className="text-right text-sm text-gray-600">
-                        <p>{edu.date}</p>
-                        <p>{getEducationCountry(edu.location)}</p>
-                      </div>
+                    {/* Role + Location */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                      <span style={{ fontSize: 12, color: SUBTEXT, fontStyle: 'italic' }}>{job.roleName}</span>
+                      {loc && <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>{loc}</span>}
                     </div>
-                  ))}
-                </div>
-              </section>
-            )}
 
-            {/* Professional Summary */}
-            {(resumeData.professionalSummary?.length ?? 0) > 0 && (
-              <section className="mb-6">
-                <SectionTitle label="Professional Summary" />
-                {(() => {
-                  const items = (resumeData.professionalSummary ?? []).flatMap(splitProseToBullets);
-                  return (
-                    <ul className="space-y-1 list-disc pl-6">
-                      {items.map((t, i) => (
-                        <li key={i} className="text-gray-800 leading-snug">{t}</li>
+                    {points.length > 0 && (
+                      <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                        {points.map((r, j) => (
+                          <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>{stripBullet(r)}</li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Per-job projects (consulting structure) */}
+                    {(job.projects ?? []).map((proj, pi) => {
+                      const subResps = (proj.projectResponsibilities ?? []).filter(r => r.trim());
+                      return (
+                        <div key={pi} style={{ marginTop: 6, paddingLeft: 14 }}>
+                          <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>
+                            {proj.projectName}
+                          </p>
+                          {subResps.length > 0 && (
+                            <ul style={{ margin: '0 0 0 14px', padding: 0, listStyleType: 'circle' }}>
+                              {subResps.flatMap(r => splitProseToBullets(r)).map((r, ri) => (
+                                <li key={ri} style={{ fontSize: 11, color: SUBTEXT, lineHeight: 1.45, marginBottom: 1 }}>
+                                  {stripBullet(r)}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {proj.keyTechnologies && (
+                            <p style={{ margin: '2px 0 0', fontSize: 11, color: SUBTEXT }}>
+                              <span style={{ fontWeight: 700, color: TEXT }}>Technologies: </span>
+                              {proj.keyTechnologies}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Per-job subsections */}
+                    {(job.subsections ?? []).map((sub, si) => {
+                      const items = (sub.content ?? []).filter(c => c.trim());
+                      if (!sub.title && !items.length) return null;
+                      return (
+                        <div key={si} style={{ marginTop: 4 }}>
+                          {sub.title && (
+                            <p style={{ margin: '0 0 1px', fontWeight: 700, fontSize: 12, color: TEXT }}>{sub.title}:</p>
+                          )}
+                          {items.length > 0 && (
+                            <p style={{ margin: 0, fontSize: 12, color: SUBTEXT }}>
+                              {items.map(r => stripBullet(r)).join(', ')}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {job.keyTechnologies && (
+                      <p style={{ margin: '3px 0 0', fontSize: 11, color: SUBTEXT }}>
+                        <span style={{ fontWeight: 700, color: TEXT }}>Key Technologies/Skills: </span>{job.keyTechnologies}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </section>
+          )}
+
+          {/* Standalone Projects */}
+          {(resumeData.projects?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Projects" />
+              {resumeData.projects!.map((proj, i) => (
+                <div key={i} style={{ marginBottom: i < resumeData.projects!.length - 1 ? 12 : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: TEXT }}>{proj.name}</span>
+                    {proj.date && (
+                      <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>{proj.date}</span>
+                    )}
+                  </div>
+                  {proj.role && (
+                    <p style={{ margin: '1px 0 3px', fontSize: 12, fontStyle: 'italic', color: SUBTEXT }}>{proj.role}</p>
+                  )}
+                  {proj.description && (
+                    <p style={{ margin: '2px 0 3px', fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>{proj.description}</p>
+                  )}
+                  {(proj.highlights?.length ?? 0) > 0 && (
+                    <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                      {proj.highlights!.flatMap(splitProseToBullets).map((h, j) => (
+                        <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 1 }}>{stripBullet(h)}</li>
                       ))}
                     </ul>
-                  );
-                })()}
-              </section>
-            )}
+                  )}
+                  {(proj.technologies?.length ?? 0) > 0 && (
+                    <p style={{ margin: '3px 0 0', fontSize: 11, color: SUBTEXT }}>
+                      <span style={{ fontWeight: 700, color: TEXT }}>Technologies: </span>
+                      {proj.technologies!.join(', ')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
 
-            {/* Technical Skills — Area / Skills table */}
-            {skillRows.length > 0 && (
-              <section className="mb-6">
-                <SectionTitle label="Technical Skills" />
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr style={{ background: 'var(--color-ga-cream)' }}>
-                      <th className="text-left px-3 py-2 border border-gray-300 font-bold w-1/3" style={{ color: 'var(--color-ga-dark)' }}>Area</th>
-                      <th className="text-left px-3 py-2 border border-gray-300 font-bold" style={{ color: 'var(--color-ga-dark)' }}>Skills</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {skillRows.map((row, i) => (
-                      <tr key={i}>
-                        <td className="px-3 py-2 border border-gray-300 font-semibold align-top text-gray-800">{row.area}</td>
-                        <td className="px-3 py-2 border border-gray-300 align-top text-gray-700">{row.skills}</td>
-                      </tr>
+          {/* Education */}
+          {sortedEdu.length > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Education" />
+              {sortedEdu.map((edu, i) => {
+                const loc = getEdLocation(edu.location ?? '');
+                return (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, color: TEXT }}>
+                      {edu.degree && <strong>{edu.degree}</strong>}
+                      {edu.areaOfStudy && <span style={{ color: SUBTEXT }}>{' '}in {edu.areaOfStudy}</span>}
+                      {edu.school && (
+                        <span style={{ color: SUBTEXT }}>
+                          {' '}—{' '}{edu.school}{loc ? `, ${loc}` : ''}
+                        </span>
+                      )}
+                    </span>
+                    {edu.date && (
+                      <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>
+                        {edu.date}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </section>
+          )}
+
+          {/* Professional Summary */}
+          {(resumeData.professionalSummary?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Professional Summary" />
+              {(() => {
+                const items = (resumeData.professionalSummary ?? []).flatMap(splitProseToBullets);
+                return (
+                  <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                    {items.map((pt, i) => (
+                      <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.55, marginBottom: 3 }}>{pt}</li>
                     ))}
-                  </tbody>
-                </table>
-              </section>
-            )}
+                  </ul>
+                );
+              })()}
 
-            {/* Certifications */}
-            {(resumeData.certifications?.length ?? 0) > 0 && (
-              <section className="mb-6">
-                <SectionTitle label="Certifications" />
-                <ul className="space-y-1 list-disc pl-6">
-                  {resumeData.certifications!.map((cert, i) => (
-                    <li key={i} className="text-gray-800 leading-snug">
-                      <span className="font-semibold">{cert.name}</span>
-                      {cert.issuedBy ? ` — ${cert.issuedBy}` : ''}
-                      {cert.dateObtained ? ` (${cert.dateObtained})` : ''}
-                    </li>
+              {/* Extra summary subsections — e.g. "Areas of Expertise" */}
+              {(resumeData.summarySections ?? resumeData.subsections ?? []).map((sub, i) => {
+                const items = (sub.content ?? []).filter(c => c.trim());
+                if (!sub.title && !items.length) return null;
+                return (
+                  <div key={i} style={{ marginTop: 8 }}>
+                    {sub.title && (
+                      <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>{sub.title}</p>
+                    )}
+                    {items.length > 0 && (
+                      <p style={{ margin: 0, fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>
+                        {items.map(r => stripBullet(r)).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </section>
+          )}
+
+          {/* Technical Skills — Area / Skills table */}
+          {skillRows.length > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Technical Skills" />
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 4 }}>
+                <thead>
+                  <tr>
+                    <th style={{
+                      textAlign: 'left', padding: '6px 8px',
+                      border: `1px solid ${BORDER}`, fontWeight: 700, color: TEXT,
+                      width: '32%', background: '#f5f5f5',
+                    }}>Area</th>
+                    <th style={{
+                      textAlign: 'left', padding: '6px 8px',
+                      border: `1px solid ${BORDER}`, fontWeight: 700, color: TEXT,
+                      background: '#f5f5f5',
+                    }}>Skills</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {skillRows.map((row, i) => (
+                    <tr key={i}>
+                      <td style={{
+                        padding: '6px 8px', border: `1px solid ${BORDER}`,
+                        verticalAlign: 'top', fontWeight: 600, color: TEXT,
+                      }}>{row.area}</td>
+                      <td style={{
+                        padding: '6px 8px', border: `1px solid ${BORDER}`,
+                        verticalAlign: 'top', color: SUBTEXT,
+                      }}>{row.skills}</td>
+                    </tr>
                   ))}
-                </ul>
-              </section>
-            )}
+                </tbody>
+              </table>
+            </section>
+          )}
 
-          </div>
+          {/* Certifications */}
+          {(resumeData.certifications?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 0 }}>
+              <SectionHeader label="Certifications" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.certifications!.map((cert, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{cert.name}</span>
+                    {cert.issuedBy ? ` — ${cert.issuedBy}` : ''}
+                    {cert.dateObtained ? ` (${cert.dateObtained})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
         </div>
-      </>
-    );
-  },
-);
-
-GeorgiaFormat.displayName = 'GeorgiaFormat';
-
-const SectionTitle = ({ label }: { label: string }) => (
-  <div className="mb-3 border-b-2 pb-1" style={{ borderColor: 'var(--color-ga-red)' }}>
-    <h2 className="text-base font-bold uppercase tracking-widest" style={{ color: 'var(--color-ga-red)' }}>
-      {label}
-    </h2>
-  </div>
-);
+      </div>
+    </div>
+  );
+};
 
 export default GeorgiaFormat;

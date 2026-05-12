@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FiDownload, FiPrinter } from 'react-icons/fi';
 import type { ResumeData } from '@/lib/types';
 import {
-  stripBullet, normalizeMonthAbbr, splitBulletItems,
+  stripBullet, normalizeMonthAbbr, splitProseToBullets,
   sortEducation, formatEmploymentLocation, getEducationCountry,
 } from '@/formatters/shared/utils';
 import StateDownloadDialog from './StateDownloadDialog';
@@ -102,7 +102,7 @@ const PennsylvaniaFormat = React.forwardRef<HTMLDivElement, Props>(
               <section className="mb-6">
                 <SectionTitle label="Professional Summary" />
                 {(() => {
-                  const items = (resumeData.professionalSummary ?? []).flatMap(p => splitBulletItems(p));
+                  const items = (resumeData.professionalSummary ?? []).flatMap(splitProseToBullets);
                   return (
                     <ul className="space-y-1">{items.map((t, i) => <li key={i} className="flex gap-2 text-gray-700"><span className="text-pa-gold mt-0.5">▶</span>{t}</li>)}</ul>
                   );
@@ -128,17 +128,28 @@ const PennsylvaniaFormat = React.forwardRef<HTMLDivElement, Props>(
                         {loc && <span className="text-gray-500 text-sm">{loc}</span>}
                       </div>
                       {job.department && <p className="text-sm text-gray-600 italic mt-0.5">{job.department}</p>}
-                      {job.description && <p className="mt-2 text-gray-700">{job.description}</p>}
-                      {(job.responsibilities?.length ?? 0) > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {job.responsibilities.map((r, j) => (
-                            <li key={j} className="flex gap-2 text-gray-700 text-sm">
-                              <span className="text-pa-gold mt-0.5 flex-shrink-0">•</span>
-                              {stripBullet(r)}
-                            </li>
-                          ))}
-                        </ul>
+                      {job.description && (job.responsibilities?.length ?? 0) > 0 && (
+                        <p className="mt-2 text-gray-700">{job.description}</p>
                       )}
+                      {(() => {
+                        const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
+                        const rawPoints = [
+                          ...liveResps,
+                          ...(job.description && !liveResps.length ? [job.description] : []),
+                        ];
+                        const points = rawPoints.flatMap(splitProseToBullets);
+                        if (!points.length) return null;
+                        return (
+                          <ul className="mt-2 space-y-1">
+                            {points.map((r, j) => (
+                              <li key={j} className="flex gap-2 text-gray-700 text-sm">
+                                <span className="text-pa-gold mt-0.5 flex-shrink-0">•</span>
+                                {stripBullet(r)}
+                              </li>
+                            ))}
+                          </ul>
+                        );
+                      })()}
                       {job.keyTechnologies && (
                         <p className="mt-2 text-sm text-gray-600">
                           <span className="font-semibold">Technologies: </span>{job.keyTechnologies}
