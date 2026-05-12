@@ -1,7 +1,7 @@
 import {
-  Document, Packer, Paragraph, Table, TableCell, TableRow,
-  TextRun, AlignmentType, LevelFormat, WidthType, ShadingType,
-  VerticalAlign, LineRuleType, BorderStyle,
+  Document, Packer, Paragraph,
+  TextRun, AlignmentType, LevelFormat,
+  LineRuleType, BorderStyle,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
@@ -14,7 +14,6 @@ import {
   splitProseToBullets,
   BODY_SPACING,
   RIGHT_TAB,
-  TABLE_BORDER,
 } from './shared';
 
 // Georgia red — used for name and section headers.
@@ -115,12 +114,13 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         }),
       );
 
-      // Combine responsibilities + description, fall back to sentence-splitting
-      // for prose-only entries so every job gets bullet points.
-      const rawPoints: string[] = [
-        ...(job.responsibilities ?? []),
-        ...(job.description && !(job.responsibilities ?? []).length ? [job.description] : []),
-      ].filter(r => r && r.trim());
+      // Responsibilities → bullets (sentence-split per item).
+      // If `responsibilities` is empty but `description` has narrative content,
+      // promote it into the bullet list (never rendered as a separate paragraph).
+      const liveResps = (job.responsibilities ?? []).filter(r => r && r.trim());
+      const rawPoints = liveResps.length
+        ? liveResps
+        : (job.description?.trim() ? [job.description] : []);
       const points = rawPoints.flatMap(splitProseToBullets);
       points.forEach(r => paras.push(bulletPara(r)));
 
@@ -338,59 +338,19 @@ function collectSkillRows(data: ResumeData): SkillRow[] {
   return rows;
 }
 
-const skillCell = (text: string, opts: { bold?: boolean; header?: boolean; width: number }) =>
-  new TableCell({
-    width: { size: opts.width, type: WidthType.DXA },
-    shading: opts.header ? { fill: 'FFF7E6', type: ShadingType.CLEAR } : undefined,
-    verticalAlign: VerticalAlign.CENTER,
-    children: [
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        spacing: { before: 40, after: 40, line: 240, lineRule: LineRuleType.AUTO },
-        children: [
-          new TextRun({
-            text,
-            bold: opts.bold ?? opts.header,
-            color: opts.header ? 'BA0C2F' : undefined,
-            font: 'Georgia',
-            size: 22,
-          }),
-        ],
-      }),
-    ],
-  });
-
-function buildSkillsTable(data: ResumeData): Table | null {
+function buildSkillsParagraphs(data: ResumeData): Paragraph[] {
   const rows = collectSkillRows(data);
-  if (!rows.length) return null;
-
-  const AREA_W   = 3000;
-  const SKILLS_W = 7800;
-
-  return new Table({
-    columnWidths: [AREA_W, SKILLS_W],
-    width: { size: 0, type: WidthType.AUTO },
-    borders: {
-      top: TABLE_BORDER, bottom: TABLE_BORDER, left: TABLE_BORDER,
-      right: TABLE_BORDER, insideHorizontal: TABLE_BORDER, insideVertical: TABLE_BORDER,
-    },
-    rows: [
-      new TableRow({
-        tableHeader: true,
-        children: [
-          skillCell('Area',   { header: true, width: AREA_W }),
-          skillCell('Skills', { header: true, width: SKILLS_W }),
-        ],
-      }),
-      ...rows.map(r => new TableRow({
-        cantSplit: true,
-        children: [
-          skillCell(r.area,   { bold: true, width: AREA_W }),
-          skillCell(r.skills, { width: SKILLS_W }),
-        ],
-      })),
-    ],
-  });
+  if (!rows.length) return [];
+  return rows.map(row =>
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: SP,
+      children: [
+        new TextRun({ text: `${row.area}: `, bold: true, size: 22, font: 'Georgia' }),
+        new TextRun({ text: row.skills, size: 22, font: 'Georgia' }),
+      ],
+    }),
+  );
 }
 
 // ── Certifications ─────────────────────────────────────────────────────────
@@ -417,7 +377,7 @@ function buildCertifications(data: ResumeData): Paragraph[] {
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
-  const children: (Paragraph | Table)[] = [];
+  const children: Paragraph[] = [];
 
   // Name — centered, red
   children.push(
@@ -469,10 +429,10 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
     children.push(...buildSummarySections(data));
   }
 
-  const skillsTable = buildSkillsTable(data);
-  if (skillsTable) {
+  const skillsParas = buildSkillsParagraphs(data);
+  if (skillsParas.length) {
     children.push(sectionHdr('Technical Skills'));
-    children.push(skillsTable);
+    children.push(...skillsParas);
   }
 
   const certParas = buildCertifications(data);

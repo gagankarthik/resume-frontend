@@ -160,10 +160,12 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         }),
       );
 
-      // Responsibility bullets: group sub-bullets first, then prose-split per item;
-      // fall back to description when responsibilities/achievements are empty.
+      // Responsibility bullets: group sub-bullets first, then prose-split per item.
+      // Promote `description` into the bullet list when responsibilities is empty.
       const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-      const rawResps = liveResps.length ? liveResps : (job.description ? [job.description] : []);
+      const rawResps = liveResps.length
+        ? liveResps
+        : (job.description?.trim() ? [job.description] : []);
       const grouped = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
       grouped.forEach(r => paras.push(bulletPara(r)));
 

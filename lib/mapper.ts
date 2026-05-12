@@ -7,7 +7,28 @@ import type {
   SimpleProject,
   SkillCategory,
   TokenStats,
+  AwardEntry,
+  PublicationEntry,
+  LanguageEntry,
+  VolunteerEntry,
+  PatentEntry,
+  MembershipEntry,
+  ConferenceEntry,
+  CourseEntry,
+  TrainingEntry,
+  ReferenceEntry,
 } from './types';
+import { splitProseToBullets } from '@/formatters/shared/utils';
+
+// Build a "Start – End" period string when both dates are present.
+function buildPeriod(start?: string, end?: string, isCurrent?: boolean): string | undefined {
+  const s = (start ?? '').trim();
+  const e = isCurrent ? 'Present' : (end ?? '').trim();
+  if (!s && !e) return undefined;
+  if (!s) return e;
+  if (!e) return s;
+  return `${s} – ${e}`;
+}
 
 function buildWorkPeriod(start?: string, end?: string, isCurrent?: boolean): string {
   const s = start ?? '';
@@ -52,20 +73,37 @@ export function mapToResumeData(api: APIResponse): ResumeData {
   // employment history
   const employmentHistory: OhioEmploymentEntry[] = (api.work_experience ?? []).map(w => {
     const extra = w as Record<string, unknown>;
+
+    // Combine bullets from responsibilities + achievements. If both are empty,
+    // promote `description` into responsibilities (sentence-split) so the editor
+    // and previews both see populated entries — the LLM often parks duty text
+    // in description for prose-style job entries.
+    const combined = [
+      ...(w.responsibilities ?? []),
+      ...(w.achievements ?? []),
+    ].filter(r => r && r.trim());
+
+    let responsibilities: string[];
+    let description: string | undefined;
+    if (combined.length > 0) {
+      responsibilities = combined;
+      description = w.description;
+    } else if (w.description && w.description.trim()) {
+      responsibilities = splitProseToBullets(w.description);
+      description = undefined; // moved into responsibilities to avoid duplication
+    } else {
+      responsibilities = [];
+      description = w.description;
+    }
+
     return {
       companyName: w.company_name,
       workPeriod: buildWorkPeriod(w.start_date, w.end_date, w.is_current),
       roleName: w.job_title,
       location: w.location,
       department: w.department,
-      description: w.description,
-      // Merge responsibilities + achievements: the LLM often splits current-job
-      // bullets into `achievements` and leaves `responsibilities` empty, which
-      // made the most recent job render with no points in every format.
-      responsibilities: [
-        ...(w.responsibilities ?? []),
-        ...(w.achievements ?? []),
-      ],
+      description,
+      responsibilities,
       keyTechnologies: w.technologies_used?.join(', '),
       projects: Array.isArray(extra.projects) ? (extra.projects as Record<string, unknown>[]).map(p => ({
         projectName: String(p.projectName ?? p.name ?? ''),
@@ -103,10 +141,14 @@ export function mapToResumeData(api: APIResponse): ResumeData {
 
     // Prefer the free-form `categories` passthrough when the backend supplies it —
     // that preserves the resume's original section names (e.g. "Cloud Datawarehouse").
-    // Otherwise fall back to the fixed Pydantic fields with our display labels.
     if (Array.isArray(skills.categories) && skills.categories.length > 0) {
       skills.categories.forEach(c => addCat(c?.name ?? 'Skills', c?.skills));
-    } else {
+    }
+
+    // If verbatim categories produced nothing usable (missing, empty arrays, or
+    // all-empty skill lists), fall back to the fixed Pydantic fields so the
+    // Technical Skills section still renders.
+    if (cats.length === 0) {
       addCat('Programming Languages', skills.programming_languages);
       addCat('Frameworks & Libraries', skills.frameworks_and_libraries);
       addCat('Databases', skills.databases);
@@ -122,14 +164,93 @@ export function mapToResumeData(api: APIResponse): ResumeData {
 
     if (cats.length > 0) {
       skillCategories = cats;
-    } else if (skills.all_skills_raw && skills.all_skills_raw.length > 0) {
-      technicalSkills = { 'Skills': skills.all_skills_raw };
+    } else {
+      // Last-resort flat fallbacks so SOMETHING shows when the LLM puts everything
+      // in a single union field instead of per-category arrays.
+      const flat =
+        (skills.all_skills_raw && skills.all_skills_raw.length > 0 && skills.all_skills_raw) ||
+        (skills.technical_skills && skills.technical_skills.length > 0 && skills.technical_skills) ||
+        null;
+      if (flat) technicalSkills = { 'Skills': flat };
     }
   }
 
   const title = pi?.profile_headline
     ?? api.work_experience?.[0]?.job_title
     ?? undefined;
+
+  // ── Supplemental sections ─────────────────────────────────────────────
+  // Each maps directly from the API arrays. Empty arrays become undefined
+  // so the frontend's "render only if data exists" guards remain accurate.
+  const orEmpty = <T>(arr: T[] | undefined): T[] | undefined =>
+    (arr && arr.length > 0) ? arr : undefined;
+
+  const awards: AwardEntry[] | undefined = orEmpty(
+    (api.awards_and_honors ?? []).map(a => ({
+      title: a.title, issuer: a.issuer, date: a.date, description: a.description,
+    })),
+  );
+
+  const publications: PublicationEntry[] | undefined = orEmpty(
+    (api.publications ?? []).map(p => ({
+      title: p.title, publisher: p.publisher, journal: p.journal,
+      date: p.date, url: p.url, description: p.description,
+    })),
+  );
+
+  const languagesSpoken: LanguageEntry[] | undefined = orEmpty(
+    (api.languages ?? []).map(l => ({ language: l.language, proficiency: l.proficiency })),
+  );
+
+  const volunteerExperience: VolunteerEntry[] | undefined = orEmpty(
+    (api.volunteer_experience ?? []).map(v => ({
+      organization: v.organization, role: v.role,
+      period: buildPeriod(v.start_date, v.end_date, v.is_current),
+      location: v.location, description: v.description,
+      responsibilities: v.responsibilities,
+    })),
+  );
+
+  const patents: PatentEntry[] | undefined = orEmpty(
+    (api.patents ?? []).map(p => ({
+      title: p.title, patentNumber: p.patent_number, date: p.date, description: p.description,
+    })),
+  );
+
+  const memberships: MembershipEntry[] | undefined = orEmpty(
+    (api.professional_memberships ?? []).map(m => ({
+      organization: m.organization, role: m.role,
+      period: buildPeriod(m.start_date, m.end_date, m.is_current),
+    })),
+  );
+
+  const conferences: ConferenceEntry[] | undefined = orEmpty(
+    (api.conferences_and_talks ?? []).map(c => ({
+      title: c.title, event: c.event, date: c.date, location: c.location, description: c.description,
+    })),
+  );
+
+  const courses: CourseEntry[] | undefined = orEmpty(
+    (api.courses ?? []).map(c => ({ name: c.name, provider: c.provider, date: c.date })),
+  );
+
+  const training: TrainingEntry[] | undefined = orEmpty(
+    (api.training ?? []).map(t => ({
+      name: t.name, provider: t.provider, date: t.date, description: t.description,
+    })),
+  );
+
+  const interests: string[] | undefined =
+    (api.interests_and_hobbies && api.interests_and_hobbies.length > 0)
+      ? api.interests_and_hobbies
+      : undefined;
+
+  const references: ReferenceEntry[] | undefined = orEmpty(
+    (api.references ?? []).map(r => ({
+      name: r.name, title: r.title, company: r.company,
+      email: r.email, phone: r.phone, relationship: r.relationship,
+    })),
+  );
 
   return {
     name: pi?.full_name,
@@ -157,5 +278,16 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     professionalSummary,
     technicalSkills,
     skillCategories,
+    awards,
+    publications,
+    languagesSpoken,
+    volunteerExperience,
+    patents,
+    memberships,
+    conferences,
+    courses,
+    training,
+    interests,
+    references,
   };
 }

@@ -128,15 +128,8 @@ const PennsylvaniaFormat = React.forwardRef<HTMLDivElement, Props>(
                         {loc && <span className="text-gray-500 text-sm">{loc}</span>}
                       </div>
                       {job.department && <p className="text-sm text-gray-600 italic mt-0.5">{job.department}</p>}
-                      {job.description && (job.responsibilities?.length ?? 0) > 0 && (
-                        <p className="mt-2 text-gray-700">{job.description}</p>
-                      )}
                       {(() => {
-                        const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-                        const rawPoints = [
-                          ...liveResps,
-                          ...(job.description && !liveResps.length ? [job.description] : []),
-                        ];
+                        const rawPoints = (job.responsibilities ?? []).filter(r => r.trim());
                         const points = rawPoints.flatMap(splitProseToBullets);
                         if (!points.length) return null;
                         return (

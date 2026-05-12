@@ -124,13 +124,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                 const period = normalizeMonthAbbr(job.workPeriod ?? '');
                 const dept = (job.department ?? '').trim();
                 const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-                // Fall back to description when the LLM placed bullets in the
-                // description field instead of responsibilities/achievements.
+                // If the LLM dropped narrative content into `description` instead of
+                // responsibilities (common for prose-style job entries), promote it
+                // into the bullet list rather than rendering as a separate paragraph.
                 const rawResps = liveResps.length
                   ? liveResps
-                  : (job.description ? [job.description] : []);
-                // groupResponsibilities first (preserves sub-bullet comma grouping),
-                // then splitProseToBullets per item to break multi-sentence prose.
+                  : (job.description?.trim() ? [job.description] : []);
                 const mainResps = groupResponsibilities(rawResps).flatMap(splitProseToBullets);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 12 : 0 }}>

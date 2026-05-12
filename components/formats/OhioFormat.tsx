@@ -203,18 +203,8 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
                         {loc && <span className="text-gray-600 text-sm whitespace-nowrap ml-4">{loc}</span>}
                       </div>
                       {dept && <p className="text-sm text-gray-700 mt-0.5">{dept}</p>}
-                      {/* description renders as paragraph only when responsibilities exist;
-                          otherwise it's promoted to bullet points below */}
-                      {job.description && (job.responsibilities?.length ?? 0) > 0 && (
-                        <p className="my-2 text-gray-800">{job.description}</p>
-                      )}
-
                       {(() => {
-                        const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-                        const rawPoints = [
-                          ...liveResps,
-                          ...(job.description && !liveResps.length ? [job.description] : []),
-                        ];
+                        const rawPoints = (job.responsibilities ?? []).filter(r => r.trim());
                         const points = rawPoints.flatMap(splitProseToBullets);
                         if (!points.length) return null;
                         return (

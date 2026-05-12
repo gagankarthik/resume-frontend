@@ -379,6 +379,79 @@ export interface SimpleProject {
   date?: string;
 }
 
+export interface AwardEntry {
+  title?: string;
+  issuer?: string;
+  date?: string;
+  description?: string;
+}
+
+export interface PublicationEntry {
+  title?: string;
+  publisher?: string;
+  journal?: string;
+  date?: string;
+  url?: string;
+  description?: string;
+}
+
+export interface LanguageEntry {
+  language?: string;
+  proficiency?: string;
+}
+
+export interface VolunteerEntry {
+  organization?: string;
+  role?: string;
+  period?: string;
+  location?: string;
+  description?: string;
+  responsibilities?: string[];
+}
+
+export interface PatentEntry {
+  title?: string;
+  patentNumber?: string;
+  date?: string;
+  description?: string;
+}
+
+export interface MembershipEntry {
+  organization?: string;
+  role?: string;
+  period?: string;
+}
+
+export interface ConferenceEntry {
+  title?: string;
+  event?: string;
+  date?: string;
+  location?: string;
+  description?: string;
+}
+
+export interface CourseEntry {
+  name?: string;
+  provider?: string;
+  date?: string;
+}
+
+export interface TrainingEntry {
+  name?: string;
+  provider?: string;
+  date?: string;
+  description?: string;
+}
+
+export interface ReferenceEntry {
+  name?: string;
+  title?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  relationship?: string;
+}
+
 export interface ResumeData {
   // display info
   name?: string;
@@ -390,7 +463,7 @@ export interface ResumeData {
   github?: string;
   location?: string;
   tokenStats?: TokenStats;
-  // sections
+  // primary sections
   education?: OhioEducationEntry[];
   certifications?: OhioCertificationEntry[];
   employmentHistory?: OhioEmploymentEntry[];
@@ -400,4 +473,16 @@ export interface ResumeData {
   subsections?: OhioSubsection[];
   technicalSkills?: Record<string, string[] | string>;
   skillCategories?: SkillCategory[];
+  // supplemental sections (rendered only if the resume actually contains them)
+  awards?: AwardEntry[];
+  publications?: PublicationEntry[];
+  languagesSpoken?: LanguageEntry[];
+  volunteerExperience?: VolunteerEntry[];
+  patents?: PatentEntry[];
+  memberships?: MembershipEntry[];
+  conferences?: ConferenceEntry[];
+  courses?: CourseEntry[];
+  training?: TrainingEntry[];
+  interests?: string[];
+  references?: ReferenceEntry[];
 }

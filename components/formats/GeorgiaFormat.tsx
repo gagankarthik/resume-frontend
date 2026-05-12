@@ -123,10 +123,14 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc    = resolveLocation(job.location ?? '');
                 const period = normalizeMonthAbbr(job.workPeriod ?? '');
-                const rawPoints: string[] = [
-                  ...(job.responsibilities ?? []),
-                  ...(job.description && !(job.responsibilities ?? []).length ? [job.description] : []),
-                ].filter(r => r && r.trim());
+                // Responsibilities first; if the LLM put narrative content into
+                // `description` instead (no per-job bullets in the source), promote
+                // it into the bullet list. We never render description as a separate
+                // paragraph — the data just becomes responsibilities visually.
+                const liveResps = (job.responsibilities ?? []).filter(r => r && r.trim());
+                const rawPoints = liveResps.length
+                  ? liveResps
+                  : (job.description?.trim() ? [job.description] : []);
                 const points = rawPoints.flatMap(splitProseToBullets);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 14 : 0 }}>
@@ -306,46 +310,22 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
             </section>
           )}
 
-          {/* Technical Skills — Area / Skills table */}
+          {/* Technical Skills — verbatim "<Category>: <skills>" lines from the resume */}
           {skillRows.length > 0 && (
             <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Technical Skills" />
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 4 }}>
-                <thead>
-                  <tr>
-                    <th style={{
-                      textAlign: 'left', padding: '6px 8px',
-                      border: `1px solid ${BORDER}`, fontWeight: 700, color: TEXT,
-                      width: '32%', background: '#f5f5f5',
-                    }}>Area</th>
-                    <th style={{
-                      textAlign: 'left', padding: '6px 8px',
-                      border: `1px solid ${BORDER}`, fontWeight: 700, color: TEXT,
-                      background: '#f5f5f5',
-                    }}>Skills</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {skillRows.map((row, i) => (
-                    <tr key={i}>
-                      <td style={{
-                        padding: '6px 8px', border: `1px solid ${BORDER}`,
-                        verticalAlign: 'top', fontWeight: 600, color: TEXT,
-                      }}>{row.area}</td>
-                      <td style={{
-                        padding: '6px 8px', border: `1px solid ${BORDER}`,
-                        verticalAlign: 'top', color: SUBTEXT,
-                      }}>{row.skills}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {skillRows.map((row, i) => (
+                <p key={i} style={{ margin: '0 0 3px', fontSize: 12, lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 700, color: TEXT }}>{row.area}: </span>
+                  <span style={{ color: SUBTEXT }}>{row.skills}</span>
+                </p>
+              ))}
             </section>
           )}
 
           {/* Certifications */}
           {(resumeData.certifications?.length ?? 0) > 0 && (
-            <section style={{ marginBottom: 0 }}>
+            <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Certifications" />
               <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
                 {resumeData.certifications!.map((cert, i) => (
@@ -353,6 +333,184 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
                     <span style={{ fontWeight: 700, color: TEXT }}>{cert.name}</span>
                     {cert.issuedBy ? ` — ${cert.issuedBy}` : ''}
                     {cert.dateObtained ? ` (${cert.dateObtained})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Awards & Honors */}
+          {(resumeData.awards?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Awards & Honors" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.awards!.map((a, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{a.title}</span>
+                    {a.issuer ? ` — ${a.issuer}` : ''}
+                    {a.date ? ` (${a.date})` : ''}
+                    {a.description ? ` · ${a.description}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Publications */}
+          {(resumeData.publications?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Publications" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.publications!.map((p, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{p.title}</span>
+                    {p.journal || p.publisher ? ` — ${p.journal ?? p.publisher}` : ''}
+                    {p.date ? ` (${p.date})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Languages */}
+          {(resumeData.languagesSpoken?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Languages" />
+              <p style={{ margin: 0, fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>
+                {resumeData.languagesSpoken!
+                  .map(l => l.proficiency ? `${l.language} (${l.proficiency})` : l.language)
+                  .filter(Boolean)
+                  .join(', ')}
+              </p>
+            </section>
+          )}
+
+          {/* Volunteer Experience */}
+          {(resumeData.volunteerExperience?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Volunteer Experience" />
+              {resumeData.volunteerExperience!.map((v, i) => (
+                <div key={i} style={{ marginBottom: i < resumeData.volunteerExperience!.length - 1 ? 8 : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontWeight: 700, fontSize: 12, color: TEXT }}>
+                      {v.organization}{v.role ? ` — ${v.role}` : ''}
+                    </span>
+                    {v.period && <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>{v.period}</span>}
+                  </div>
+                  {(v.responsibilities?.length ?? 0) > 0 && (
+                    <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                      {v.responsibilities!.flatMap(splitProseToBullets).map((r, j) => (
+                        <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 1 }}>{stripBullet(r)}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* Patents */}
+          {(resumeData.patents?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Patents" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.patents!.map((p, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{p.title}</span>
+                    {p.patentNumber ? ` — ${p.patentNumber}` : ''}
+                    {p.date ? ` (${p.date})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Professional Memberships */}
+          {(resumeData.memberships?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Professional Memberships" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.memberships!.map((m, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{m.organization}</span>
+                    {m.role ? ` — ${m.role}` : ''}
+                    {m.period ? ` (${m.period})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Conferences & Talks */}
+          {(resumeData.conferences?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Conferences & Talks" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.conferences!.map((c, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{c.title}</span>
+                    {c.event ? ` — ${c.event}` : ''}
+                    {c.date ? ` (${c.date})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Courses */}
+          {(resumeData.courses?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Courses" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.courses!.map((c, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{c.name}</span>
+                    {c.provider ? ` — ${c.provider}` : ''}
+                    {c.date ? ` (${c.date})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Training */}
+          {(resumeData.training?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Training" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.training!.map((t, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{t.name}</span>
+                    {t.provider ? ` — ${t.provider}` : ''}
+                    {t.date ? ` (${t.date})` : ''}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Interests */}
+          {(resumeData.interests?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Interests" />
+              <p style={{ margin: 0, fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>
+                {resumeData.interests!.join(', ')}
+              </p>
+            </section>
+          )}
+
+          {/* References */}
+          {(resumeData.references?.length ?? 0) > 0 && (
+            <section style={{ marginBottom: 0 }}>
+              <SectionHeader label="References" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.references!.map((r, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{r.name}</span>
+                    {r.title ? ` — ${r.title}` : ''}
+                    {r.company ? `, ${r.company}` : ''}
+                    {r.email ? ` · ${r.email}` : ''}
+                    {r.phone ? ` · ${r.phone}` : ''}
                   </li>
                 ))}
               </ul>
