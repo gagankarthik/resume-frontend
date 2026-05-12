@@ -59,7 +59,13 @@ export function mapToResumeData(api: APIResponse): ResumeData {
       location: w.location,
       department: w.department,
       description: w.description,
-      responsibilities: w.responsibilities ?? [],
+      // Merge responsibilities + achievements: the LLM often splits current-job
+      // bullets into `achievements` and leaves `responsibilities` empty, which
+      // made the most recent job render with no points in every format.
+      responsibilities: [
+        ...(w.responsibilities ?? []),
+        ...(w.achievements ?? []),
+      ],
       keyTechnologies: w.technologies_used?.join(', '),
       projects: Array.isArray(extra.projects) ? (extra.projects as Record<string, unknown>[]).map(p => ({
         projectName: String(p.projectName ?? p.name ?? ''),
