@@ -11,9 +11,8 @@ import {
 } from '@/lib/docx/shared';
 import { splitProseToBullets } from '@/formatters/shared/utils';
 
-const TEXT    = '#111111';
-const SUBTEXT = '#444444';
-const BORDER  = '#cccccc';
+const TEXT    = '#000000';
+const SUBTEXT = '#222222';
 
 function resolveLocation(raw: string): string {
   const f = formatLocation(raw ?? '');
@@ -37,8 +36,9 @@ const SectionHeader = ({ label }: { label: string }) => (
     color: TEXT,
     textTransform: 'uppercase',
     letterSpacing: '0.07em',
-    fontFamily: 'Calibri, Arial, sans-serif',
-    borderBottom: `1px solid ${BORDER}`,
+    fontFamily: 'Georgia, "Times New Roman", serif',
+    textDecoration: 'underline',
+    borderBottom: '1px solid #000000',
     paddingBottom: 3,
   }}>
     {label}
@@ -80,7 +80,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
     <div className="h-full overflow-y-auto bg-gray-100 px-4 py-5">
       <div
         className="bg-white mx-auto shadow-md rounded-lg overflow-hidden"
-        style={{ maxWidth: 760, fontFamily: 'Calibri, Arial, sans-serif', fontSize: 13, color: TEXT }}
+        style={{ maxWidth: 760, fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 13, color: TEXT }}
       >
         {/* ── Header ── */}
         <div style={{ padding: '22px 28px 16px' }}>
@@ -94,6 +94,8 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
             letterSpacing: '0.04em',
             textAlign: 'center',
             textTransform: 'uppercase',
+            textDecoration: 'underline',
+            fontFamily: 'Georgia, "Times New Roman", serif',
           }}>
             {resumeData.name || 'Full Name'}
           </h1>
