@@ -16,8 +16,7 @@ import {
   RIGHT_TAB,
 } from './shared';
 
-// Georgia red — used for name and section headers.
-const COLOR = 'BA0C2F';
+const COLOR = '000000';
 
 const SP       = { before: 0, after: 0,   line: 240, lineRule: LineRuleType.AUTO } as const;
 const SP_AFTER = { before: 0, after: 80,  line: 240, lineRule: LineRuleType.AUTO } as const;
@@ -34,14 +33,14 @@ const sectionHdr = (label: string) =>
     alignment: AlignmentType.LEFT,
     spacing: { before: 240, after: 80, line: 240, lineRule: LineRuleType.AUTO },
     border: {
-      bottom: { color: COLOR, space: 1, style: BorderStyle.SINGLE, size: 12 },
+      bottom: { color: '000000', space: 1, style: BorderStyle.SINGLE, size: 6 },
     },
     children: [
       new TextRun({
         text: label.toUpperCase(),
         bold: true,
+        underline: {},
         size: 24,
-        color: COLOR,
         font: 'Georgia',
       }),
     ],
@@ -374,20 +373,17 @@ function buildCertifications(data: ResumeData): Paragraph[] {
 export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
   const children: Paragraph[] = [];
 
-  // Name — centered, red
+  // Name — centered, bold, underlined, black
   children.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 200, line: 240, lineRule: LineRuleType.AUTO },
-      border: {
-        bottom: { color: COLOR, space: 4, style: BorderStyle.SINGLE, size: 18 },
-      },
       children: [
         new TextRun({
           text: (data.name ?? 'Candidate Name').toUpperCase(),
           bold: true,
+          underline: {},
           size: 44,
-          color: COLOR,
           font: 'Georgia',
         }),
       ],
