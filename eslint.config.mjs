@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Format components use intentional inline styles for precise resume layout
+    "components/formats/**",
   ]),
 ]);
 
