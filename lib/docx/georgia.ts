@@ -189,7 +189,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         paras.push(
           new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
-            spacing: SP,
+            spacing: { ...SP, before: 120 },
             children: [
               new TextRun({ text: 'Key Technologies/Skills: ', bold: true, size: 20, font: 'Georgia' }),
               new TextRun({ text: job.keyTechnologies, size: 20, font: 'Georgia' }),

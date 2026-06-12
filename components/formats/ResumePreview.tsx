@@ -146,7 +146,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                     {/* Main responsibilities — sub-bullets (○) grouped, then prose-split */}
                     {mainResps.length > 0 && (
                       <div style={{ marginTop: 4 }}>
-                        <p style={{ margin: '0 0 2px', fontWeight: 700, color: ACCENT, fontSize: 12 }}>Responsibilities</p>
+                        <p style={{ margin: '0 0 2px', fontWeight: 700, color: '#222', fontSize: 12 }}>Responsibilities</p>
                         <div style={{ paddingLeft: 4 }}>
                           {mainResps.map((r, j) => (
                             <div key={j} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 2 }}>
@@ -172,7 +172,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                             </>
                           )}
                           {proj.keyTechnologies && (
-                            <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+                            <p style={{ margin: '6px 0 0', fontSize: 12 }}>
                               <span style={{ fontWeight: 700 }}>Key Technologies/Skills: </span>{proj.keyTechnologies}
                             </p>
                           )}
@@ -193,7 +193,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                     })}
 
                     {job.keyTechnologies && (
-                      <p style={{ margin: '4px 0 0', fontSize: 12 }}>
+                      <p style={{ margin: '8px 0 0', fontSize: 12 }}>
                         <span style={{ fontWeight: 700 }}>Key Technologies/Skills: </span>{job.keyTechnologies}
                       </p>
                     )}

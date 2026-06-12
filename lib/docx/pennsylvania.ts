@@ -198,8 +198,9 @@ const SP = { before: 0, after: 0, line: 240, lineRule: LineRuleType.AUTO } as co
 const plain = (text: string) =>
   new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: SP, children: [new TextRun({ text, font: 'Calibri', size: 22 })] });
 
+// Plain black bold label — the team flagged colored "Responsibilities" headings.
 const boldLabel = (text: string) =>
-  new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: SP, children: [new TextRun({ text, bold: true, font: 'Calibri', size: 22, color: COLOR })] });
+  new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: SP, children: [new TextRun({ text, bold: true, font: 'Calibri', size: 22 })] });
 
 const blankLine = () =>
   new Paragraph({ spacing: SP, children: [] });
@@ -266,7 +267,7 @@ function buildEmploymentHistory(data: ResumeData): Paragraph[] {
           paras.push(
             new Paragraph({
               alignment: AlignmentType.JUSTIFIED,
-              spacing: SP,
+              spacing: { ...SP, before: 120 },
               children: [
                 new TextRun({ text: 'Key Technologies/Skills: ', bold: true, font: 'Calibri', size: 22 }),
                 new TextRun({ text: proj.keyTechnologies, font: 'Calibri', size: 22 }),
@@ -286,7 +287,7 @@ function buildEmploymentHistory(data: ResumeData): Paragraph[] {
         paras.push(
           new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
-            spacing: SP,
+            spacing: { ...SP, before: 120 },
             children: [
               new TextRun({ text: 'Key Technologies/Skills: ', bold: true, font: 'Calibri', size: 22 }),
               new TextRun({ text: job.keyTechnologies, font: 'Calibri', size: 22 }),
@@ -409,10 +410,10 @@ export async function buildPADocx(data: ResumeData): Promise<void> {
           spacing: { after: 0, line: 240, lineRule: LineRuleType.AUTO },
           children: [new TextRun({ text: data.name ?? 'Full Name', bold: true, size: 36, color: COLOR, font: 'Times New Roman' })],
         }),
-        // Title / Requisition row
+        // Title / Requisition row — spaced down from the name line
         new Paragraph({
           tabStops: [RIGHT_TAB],
-          spacing: BODY_SPACING,
+          spacing: { ...BODY_SPACING, before: 120 },
           children: [
             new TextRun({ text: 'Title/Role:', bold: true, size: 28, color: COLOR, font: 'Times New Roman' }),
             new TextRun({ text: '\t' }),

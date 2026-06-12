@@ -13,10 +13,13 @@ const MONTH_MAP: Record<string, string> = {
 };
 
 export function normalizeMonthAbbr(s: string): string {
-  return s.replace(
-    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
-    (m) => MONTH_MAP[m] ?? m,
-  );
+  return s
+    .replace(
+      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
+      (m) => MONTH_MAP[m] ?? m,
+    )
+    // Date ranges always use an en dash with spaces, never a bare hyphen.
+    .replace(/\s*[-‐‑–—]+\s*/g, ' – ');
 }
 
 export function splitBulletItems(s: string): string[] {
@@ -36,10 +39,8 @@ export function splitBulletItems(s: string): string[] {
   const piped = s.split(/\s*\|\s*/);
   if (piped.length > 1) return piped.map(stripBullet).filter(Boolean);
 
-  // 4. Semicolons.
-  const semi = s.split(/;\s*/);
-  if (semi.length > 1) return semi.map(stripBullet).filter(Boolean);
-
+  // NOTE: no semicolon splitting — semicolons are normal punctuation inside a
+  // single bullet and splitting on them chops sentences in half.
   return [stripBullet(s)];
 }
 
@@ -49,13 +50,16 @@ function splitInlineBullets(s: string): string[] {
   return parts.length > 0 ? parts : [s];
 }
 
-// Sentence-split helper. Falls back to one chunk if the input is short or one sentence.
+// Sentence-split helper. Only splits genuinely long prose blocks (a real paragraph);
+// bullets of typical length are kept whole so their sentences aren't chopped apart.
 // Abbreviations like Sr., Inc., Ph.D., e.g. are re-merged so titles don't get chopped.
 const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
 
+const SENTENCE_SPLIT_MIN = 300;
+
 function sentenceSplit(text: string): string[] {
   const t = text.replace(/\s+/g, ' ').trim();
-  if (t.length < 80) return [t];
+  if (t.length < SENTENCE_SPLIT_MIN) return [t];
 
   const parts: string[] = [];
   let buf = '';

@@ -38,6 +38,22 @@ function buildWorkPeriod(start?: string, end?: string, isCurrent?: boolean): str
   return `${s} – ${e}`;
 }
 
+// Title-case a name that arrived in ALL CAPS, preserving O'Brien / Smith-Jones
+// style punctuation. Mixed-case names pass through untouched.
+function formatName(pi?: APIResponse['personal_information']): string | undefined {
+  let name = (pi?.full_name ?? '').trim();
+  // If full_name is missing or lost the surname, rebuild it from the parts.
+  const composed = [pi?.first_name, pi?.last_name].filter(Boolean).join(' ').trim();
+  if (!name || (!name.includes(' ') && composed.includes(' '))) {
+    name = composed || name;
+  }
+  if (!name) return undefined;
+  if (name === name.toUpperCase() && /[A-Z]/.test(name)) {
+    name = name.toLowerCase().replace(/(^|[\s\-'.])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
+  }
+  return name;
+}
+
 export function mapToResumeData(api: APIResponse): ResumeData {
   const pi = api.personal_information;
 
@@ -50,9 +66,10 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     cost: typeof meta.cost === 'number' ? meta.cost : undefined,
   } : undefined;
 
-  // education
+  // education — prefer the standardized abbreviation (BS, MBA, …) for the Degree
+  // column; the verbatim degree text is the fallback when no abbreviation exists.
   const education: OhioEducationEntry[] = (api.education ?? []).map(e => ({
-    degree: e.degree ?? e.degree_type,
+    degree: e.degree_type ?? e.degree,
     areaOfStudy: e.field_of_study ?? e.major,
     school: e.institution_name,
     date: e.end_date ?? e.start_date,
@@ -238,7 +255,7 @@ export function mapToResumeData(api: APIResponse): ResumeData {
   );
 
   return {
-    name: pi?.full_name,
+    name: formatName(pi),
     title,
     requisitionNumber: pi?.requisition_number,
     email: pi?.email?.[0],

@@ -39,10 +39,13 @@ export const normalizeMonthAbbr = (s = '') => {
     september: 'Sep', october: 'Oct', november: 'Nov', december: 'Dec',
     sept: 'Sep', octo: 'Oct',
   };
-  return s.replace(
-    /\b(january|february|march|april|june|july|august|september|october|november|december|sept|octo)\b/gi,
-    m => map[m.toLowerCase()] || m,
-  );
+  return s
+    .replace(
+      /\b(january|february|march|april|june|july|august|september|october|november|december|sept|octo)\b/gi,
+      m => map[m.toLowerCase()] || m,
+    )
+    // Date ranges always use an en dash with spaces, never a bare hyphen.
+    .replace(/\s*[-‐‑–—]+\s*/g, ' – ');
 };
 
 export const splitBulletItems = (t = '') => {
@@ -62,10 +65,8 @@ export const splitBulletItems = (t = '') => {
   const piped = t.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean);
   if (piped.length > 1) return piped;
 
-  // 4. Semicolons — matches preview splitter so DOCX output stays in sync.
-  const semi = t.split(/;\s*/).map(s => s.trim()).filter(Boolean);
-  if (semi.length > 1) return semi;
-
+  // NOTE: no semicolon splitting — semicolons are normal punctuation inside a
+  // single bullet and splitting on them chops sentences in half.
   return [t];
 };
 
@@ -73,13 +74,16 @@ const splitOnGlyph = (s: string): string[] =>
   s.split(/\s*[•●▪‣◦⁃∙]\s*/).map(p => p.trim()).filter(Boolean);
 
 // Prose paragraph → bullet list. First applies the structured splitters (newlines /
-// glyphs / | / ;), then sentence-splits each resulting chunk so multi-sentence
-// pre-bullet text doesn't render as one mega-bullet.
+// glyphs / |), then sentence-splits only genuinely long prose blocks so a real
+// paragraph doesn't render as one mega-bullet. Bullets of typical length are kept
+// whole — splitting them chops sentences that belong together.
 const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
+
+const SENTENCE_SPLIT_MIN = 300;
 
 function sentenceSplit(text = ''): string[] {
   const t = text.replace(/\s+/g, ' ').trim();
-  if (t.length < 80) return [t];
+  if (t.length < SENTENCE_SPLIT_MIN) return [t];
 
   const parts: string[] = [];
   let buf = '';
