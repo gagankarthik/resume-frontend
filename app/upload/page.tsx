@@ -14,7 +14,7 @@ type Stage = 'idle' | 'extracting' | 'done' | 'error';
 const STAGES = [
   { key: 'reading',     label: 'Reading document',          detail: 'Extracting raw text from file' },
   { key: 'parsing',     label: 'Parsing content',           detail: 'Identifying document structure' },
-  { key: 'ai',          label: 'AI field extraction',       detail: 'Claude analyzing all resume sections' },
+  { key: 'extracting',  label: 'Field extraction',          detail: 'Reading every resume section' },
   { key: 'structuring', label: 'Structuring data',          detail: 'Organizing into 20+ schema fields' },
   { key: 'validating',  label: 'Validating output',         detail: 'Applying data quality checks' },
 ];
@@ -87,7 +87,7 @@ export default function UploadPage() {
             <p className="text-gov-blue text-xs font-bold tracking-[0.15em] uppercase mb-2">Step 1 of 3 — Document Submission</p>
             <h1 className="text-2xl font-extrabold text-gov-gray-900 mb-1">Upload Resume Document</h1>
             <p className="text-gov-gray-600 text-sm">
-              Submit your resume for AI-powered extraction and state-format conversion.
+              Submit a resume for field extraction and state-format conversion.
             </p>
           </div>
 
@@ -266,7 +266,7 @@ export default function UploadPage() {
       <div className="border-t border-gov-gray-200 bg-white mt-auto">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between text-xs text-gov-gray-400">
           <span>State Resume Processing System</span>
-          <span>State Format Tool · Powered by AI</span>
+          <span>State Format Tool · Oceanblue Solutions</span>
         </div>
       </div>
     </div>

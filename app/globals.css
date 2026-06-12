@@ -2,8 +2,16 @@
 
 /* ── Government Design System Tokens ────────────────────────────────────── */
 @theme inline {
-  /* Public Sans — the USWDS standard typeface */
-  --font-sans: 'Public Sans', system-ui, sans-serif;
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  /* Drafting-room landing palette */
+  --color-ink:        #11253c;
+  --color-ink-deep:   #0a1a2e;
+  --color-paper:      #f5f2ea;
+  --color-paper-deep: #ebe6d9;
+  --color-process:    #0f6fb4;
+  --color-signal:     #e1591f;
 
   /* Government primary palette */
   --color-gov-navy:       #0d2240;
@@ -124,6 +132,9 @@
   box-shadow: 0 0 0 3px rgba(0, 94, 162, 0.15);
 }
 
+/* Smooth anchor scrolling for section links */
+html { scroll-behavior: smooth; }
+
 /* Print */
 @media print {
   nav, header, aside, .no-print { display: none !important; }
@@ -134,6 +145,100 @@
     margin: 0 !important;
   }
 }
+
+/* ── Drafting-room landing system ─────────────────────────────────────────── */
+:root {
+  --ink: #11253c;
+  --ink-deep: #0a1a2e;
+  --paper: #f5f2ea;
+  --paper-deep: #ebe6d9;
+  --process: #0f6fb4;
+  --signal: #e1591f;
+}
+
+/* Graph-paper texture on warm paper */
+.paper-grid {
+  background-image:
+    linear-gradient(rgba(17, 37, 60, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 37, 60, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Blueprint texture on ink navy */
+.blueprint-grid {
+  background-image:
+    linear-gradient(rgba(140, 190, 235, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 190, 235, 0.09) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Flat-extrusion shadows — the "modular block" look */
+.hard-shadow    { box-shadow: 7px 7px 0 0 var(--ink); }
+.hard-shadow-sm { box-shadow: 4px 4px 0 0 var(--ink); }
+.hard-shadow-signal { box-shadow: 6px 6px 0 0 var(--signal); }
+.lift-block { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.lift-block:hover { transform: translate(-3px, -3px); box-shadow: 10px 10px 0 0 var(--ink); }
+
+/* Conveyor line — flowing dashes via background-position */
+@keyframes convey { to { background-position-x: 22px; } }
+.conveyor {
+  height: 2px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(125, 199, 255, 0.85) 0 10px,
+    transparent 10px 22px
+  );
+  animation: convey 0.8s linear infinite;
+}
+
+/* Document chip traveling down the line */
+@keyframes chip-travel {
+  0%   { left: 0%; opacity: 0; }
+  5%   { opacity: 1; }
+  95%  { opacity: 1; }
+  100% { left: calc(100% - 40px); opacity: 0; }
+}
+.chip-travel { animation: chip-travel 7s linear infinite; }
+
+/* Station pulse — per-station color via --pulse-from/--pulse-to inline vars */
+@keyframes station-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--pulse-from, rgba(225, 89, 31, 0.5)); }
+  70%  { box-shadow: 0 0 0 12px var(--pulse-to, rgba(225, 89, 31, 0)); }
+  100% { box-shadow: 0 0 0 0 var(--pulse-to, rgba(225, 89, 31, 0)); }
+}
+.station-pulse { animation: station-pulse 2.4s ease-out infinite; }
+
+/* Gentle vertical drift for annotation chips */
+@keyframes drift-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+.drift-y { animation: drift-y 5s ease-in-out infinite; }
+
+/* Dashed leader line for annotations */
+.leader-line {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--signal) 0 6px,
+    transparent 6px 12px
+  );
+  height: 2px;
+}
+
+/* Corner registration ticks — technical-drawing frame */
+.tick-frame { position: relative; }
+.tick-frame::before,
+.tick-frame::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: var(--ink);
+  border-style: solid;
+  opacity: 0.55;
+}
+.tick-frame::before { top: -9px; left: -9px; border-width: 2px 0 0 2px; }
+.tick-frame::after  { bottom: -9px; right: -9px; border-width: 0 2px 2px 0; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
