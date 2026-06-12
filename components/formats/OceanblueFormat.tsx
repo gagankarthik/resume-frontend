@@ -272,9 +272,9 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
             </section>
           )}
 
-          {/* Education — last */}
+          {/* Education */}
           {sortedEdu.length > 0 && (
-            <section>
+            <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Education" />
               {sortedEdu.map((edu, i) => {
                 const loc = getEdLocation(edu.location ?? '');
@@ -297,6 +297,22 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                   </div>
                 );
               })}
+            </section>
+          )}
+
+          {/* Certifications — last */}
+          {(resumeData.certifications?.length ?? 0) > 0 && (
+            <section>
+              <SectionHeader label="Certifications" />
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                {resumeData.certifications!.map((cert, i) => (
+                  <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
+                    <span style={{ fontWeight: 700, color: TEXT }}>{cert.name}</span>
+                    {cert.issuedBy ? ` — ${cert.issuedBy}` : ''}
+                    {cert.dateObtained ? ` (${cert.dateObtained})` : ''}
+                  </li>
+                ))}
+              </ul>
             </section>
           )}
 

@@ -386,6 +386,27 @@ function buildEducation(data: ResumeData): Paragraph[] {
   });
 }
 
+// ── Certifications ─────────────────────────────────────────────────────────
+
+function buildCertifications(data: ResumeData): Paragraph[] {
+  if (!data.certifications?.length) return [];
+  return data.certifications.map(cert => {
+    const parts: string[] = [];
+    if (cert.issuedBy) parts.push(` — ${cert.issuedBy}`);
+    if (cert.dateObtained) parts.push(` (${cert.dateObtained})`);
+    const suffix = parts.join('');
+    return new Paragraph({
+      numbering: { reference: 'resumeBullet', level: 0 },
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: BODY_SPACING,
+      children: [
+        new TextRun({ text: cert.name ?? '', bold: true, size: 22, font: 'Calibri' }),
+        ...(suffix ? [new TextRun({ text: suffix, size: 22, font: 'Calibri' })] : []),
+      ],
+    });
+  });
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
@@ -482,11 +503,18 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
     children.push(...projParas);
   }
 
-  // Education (last)
+  // Education
   const eduParas = buildEducation(data);
   if (eduParas.length) {
     children.push(sectionHdr('Education'));
     children.push(...eduParas);
+  }
+
+  // Certifications (last) — matches the preview
+  const certParas = buildCertifications(data);
+  if (certParas.length) {
+    children.push(sectionHdr('Certifications'));
+    children.push(...certParas);
   }
 
   const doc = new Document({
