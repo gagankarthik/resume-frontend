@@ -263,6 +263,16 @@ export interface RawSections {
   unclassified_content?: string;
 }
 
+// Report from the backend's completeness-audit stage: how much of the source
+// resume made it into the JSON, and which hallucination-prone values were removed.
+export interface ExtractionAudit {
+  coverage_percent?: number;
+  missed_line_count?: number;
+  missed_lines?: string[];
+  warnings?: string[];
+  recovered?: Record<string, number>;
+}
+
 export interface Metadata {
   filename?: string;
   file_type?: string;
@@ -277,6 +287,8 @@ export interface Metadata {
   processing_time_seconds?: number;
   client_id?: string;
   project_id?: string;
+  audit?: ExtractionAudit;
+  validation_warnings?: string[];
   [key: string]: unknown;
 }
 

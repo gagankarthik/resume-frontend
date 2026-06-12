@@ -30,6 +30,45 @@ const SECTIONS: { id: SectionId; label: string; Icon: React.FC<{ size?: number }
   { id: 'more',           label: 'More Sections',    Icon: FiMoreHorizontal },
 ];
 
+// Banner summarising the backend's extraction-quality audit. Only shows when
+// there is something actionable: coverage gaps or removed/suspect values.
+const AuditBanner: React.FC<{ data: APIResponse }> = ({ data }) => {
+  const [open, setOpen] = useState(false);
+  const audit = data._metadata?.audit;
+  if (!audit) return null;
+
+  const coverage = audit.coverage_percent;
+  const warnings = audit.warnings ?? [];
+  const missed = audit.missed_lines ?? [];
+  const hasIssues = (coverage !== undefined && coverage < 95) || warnings.length > 0 || missed.length > 0;
+  if (!hasIssues) return null;
+
+  return (
+    <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+      <button onClick={() => setOpen(o => !o)} className="flex w-full items-center gap-2 text-left font-bold">
+        <span>⚠</span>
+        <span className="flex-1">
+          Extraction check{coverage !== undefined ? ` — ${coverage}% of the resume captured` : ''}
+          {warnings.length > 0 ? ` · ${warnings.length} warning${warnings.length > 1 ? 's' : ''}` : ''}
+        </span>
+        <span className="font-normal underline">{open ? 'hide' : 'details'}</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1">
+          {warnings.map((w, i) => <p key={`w${i}`}>• {w}</p>)}
+          {missed.length > 0 && (
+            <>
+              <p className="font-bold mt-1">Lines that may not have been captured:</p>
+              {missed.map((m, i) => <p key={`m${i}`} className="truncate">– {m}</p>)}
+            </>
+          )}
+          <p className="mt-1 text-amber-700">Review the affected sections and fill in anything missing before downloading.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ResumeEditor: React.FC<Props> = ({ data, onChange }) => {
   const [active, setActive] = useState<SectionId>('personal');
 
@@ -78,6 +117,7 @@ const ResumeEditor: React.FC<Props> = ({ data, onChange }) => {
 
       {/* Editor content */}
       <div className="flex-1 overflow-y-auto p-5 bg-white">
+        <AuditBanner data={data} />
         {renderSection()}
       </div>
     </div>
