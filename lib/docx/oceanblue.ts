@@ -13,9 +13,11 @@ import {
   formatLocation,
   groupResponsibilities,
   splitProseToBullets,
+  projectTitleWithClient,
   BODY_SPACING,
   RIGHT_TAB,
 } from './shared';
+import { buildSupplementalDocx } from './supplemental';
 
 // ── Constants (no colors — all black) ──────────────────────────────────────
 
@@ -33,6 +35,15 @@ function shortenLinkedIn(url: string): string {
   try {
     const u = new URL(url.startsWith('http') ? url : `https://${url}`);
     return `linkedin.com${u.pathname.replace(/\/$/, '')}`;
+  } catch {
+    return url;
+  }
+}
+
+function shortenGitHub(url: string): string {
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return `github.com${u.pathname.replace(/\/$/, '')}`;
   } catch {
     return url;
   }
@@ -160,6 +171,9 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         }),
       );
 
+      const dept = (job.department ?? '').trim();
+      if (dept) paras.push(plain(dept));
+
       // Responsibility bullets: group sub-bullets first, then prose-split per item.
       const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
       const grouped = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
@@ -167,7 +181,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
 
       // Sub-projects (consulting structure)
       (job.projects ?? []).forEach((proj, pi) => {
-        const title    = proj.projectName || `Project ${pi + 1}`;
+        const title    = projectTitleWithClient(proj, `Project ${pi + 1}`);
         const subResps = (proj.projectResponsibilities ?? []).filter(r => r.trim());
 
         paras.push(
@@ -416,6 +430,7 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
   if (data.email)    contactParts.push(data.email);
   if (data.phone)    contactParts.push(data.phone);
   if (data.linkedin) contactParts.push(shortenLinkedIn(data.linkedin));
+  if (data.github)   contactParts.push(shortenGitHub(data.github));
   if (data.location) contactParts.push(data.location);
   const contactText = contactParts.join('  |  ');
 
@@ -481,6 +496,24 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
     (data.professionalSummary ?? [])
       .flatMap(splitProseToBullets)
       .forEach(pt => children.push(bulletPara(pt)));
+
+    // Extra summary subsections — e.g. "Areas of Expertise"
+    (data.summarySections ?? data.subsections ?? []).forEach(sub => {
+      const items = (sub.content ?? []).filter(c => c.trim());
+      if (!sub.title && !items.length) return;
+      if (sub.title) {
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.JUSTIFIED,
+            spacing: SP,
+            children: [new TextRun({ text: sub.title, bold: true, size: 22, font: 'Calibri' })],
+          }),
+        );
+      }
+      if (items.length) {
+        children.push(plain(items.map(r => stripBullet(r)).join(', ')));
+      }
+    });
   }
 
   // Technical Skills
@@ -510,12 +543,16 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
     children.push(...eduParas);
   }
 
-  // Certifications (last) — matches the preview
+  // Certifications — matches the preview
   const certParas = buildCertifications(data);
   if (certParas.length) {
     children.push(sectionHdr('Certifications'));
     children.push(...certParas);
   }
+
+  // Awards, publications, languages, volunteer, patents, memberships,
+  // conferences, courses, training, interests, references — shared builder.
+  children.push(...buildSupplementalDocx(data, { font: 'Calibri', bulletRef: 'resumeBullet', sectionHdr }));
 
   const doc = new Document({
     styles: {

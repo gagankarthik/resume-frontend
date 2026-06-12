@@ -2,10 +2,11 @@
 
 import React from 'react';
 import type { ResumeData } from '@/lib/types';
-import { stripBullet, normalizeMonthAbbr, sortEducation, getEdLocation, formatLocation, groupResponsibilities } from '@/lib/docx/shared';
+import { stripBullet, normalizeMonthAbbr, sortEducation, getEdLocation, formatLocation, groupResponsibilities, projectTitleWithClient } from '@/lib/docx/shared';
 import { splitProseToBullets } from '@/formatters/shared/utils';
 import OceanblueFormat from './OceanblueFormat';
 import GeorgiaFormat from './GeorgiaFormat';
+import SupplementalSections from './SupplementalSections';
 
 // Filter out non-geographic location values
 function resolveLocation(raw: string): string {
@@ -161,7 +162,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                     {/* Sub-projects */}
                     {(job.projects ?? []).map((proj, pi) => {
                       const subResps = (proj.projectResponsibilities ?? []).filter(r => r.trim());
-                      const title = proj.projectName || `Project ${pi + 1}`;
+                      const title = projectTitleWithClient(proj, `Project ${pi + 1}`);
                       return (
                         <div key={pi} style={{ marginTop: 6, paddingLeft: 8, borderLeft: `2px solid #c8d8ea` }}>
                           <p style={{ margin: '0 0 2px', fontWeight: 700, color: ACCENT, fontSize: 12 }}>{title}</p>
@@ -269,7 +270,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
           {/* ── Technical Skills ── */}
           {((resumeData.technicalSkills && Object.keys(resumeData.technicalSkills).length > 0) ||
             (resumeData.skillCategories?.length ?? 0) > 0) && (
-            <section>
+            <section style={{ marginBottom: 18 }}>
               <SectionHeader label="Technical Skills" />
               {resumeData.technicalSkills && Object.keys(resumeData.technicalSkills).length > 0 &&
                 Object.entries(resumeData.technicalSkills).map(([cat, skills]) => (
@@ -287,6 +288,9 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
               ))}
             </section>
           )}
+
+          {/* ── Supplemental sections (awards, publications, languages, …) ── */}
+          <SupplementalSections data={resumeData} text="#222222" subtext="#333333" Header={SectionHeader} />
 
         </div>
       </div>

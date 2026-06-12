@@ -12,6 +12,8 @@ import {
   formatLocation,
 } from '@/lib/docx/shared';
 import { splitProseToBullets } from '@/formatters/shared/utils';
+import { projectTitleWithClient } from '@/lib/docx/shared';
+import SupplementalSections from './SupplementalSections';
 
 const TEXT    = '#111111';
 const SUBTEXT = '#444444';
@@ -25,6 +27,15 @@ function shortenLinkedIn(url: string): string {
   try {
     const u = new URL(url.startsWith('http') ? url : `https://${url}`);
     return `linkedin.com${u.pathname.replace(/\/$/, '')}`;
+  } catch {
+    return url;
+  }
+}
+
+function shortenGitHub(url: string): string {
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return `github.com${u.pathname.replace(/\/$/, '')}`;
   } catch {
     return url;
   }
@@ -55,6 +66,7 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
   if (resumeData.email)    contactItems.push(resumeData.email);
   if (resumeData.phone)    contactItems.push(resumeData.phone);
   if (resumeData.linkedin) contactItems.push(shortenLinkedIn(resumeData.linkedin));
+  if (resumeData.github)   contactItems.push(shortenGitHub(resumeData.github));
   if (resumeData.location) contactItems.push(resumeData.location);
 
   const hasSkills =
@@ -119,6 +131,24 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                   </ul>
                 );
               })()}
+
+              {/* Extra summary subsections — e.g. "Areas of Expertise" */}
+              {(resumeData.summarySections ?? resumeData.subsections ?? []).map((sub, i) => {
+                const items = (sub.content ?? []).filter(c => c.trim());
+                if (!sub.title && !items.length) return null;
+                return (
+                  <div key={i} style={{ marginTop: 8 }}>
+                    {sub.title && (
+                      <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>{sub.title}</p>
+                    )}
+                    {items.length > 0 && (
+                      <p style={{ margin: 0, fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>
+                        {items.map(r => stripBullet(r)).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </section>
           )}
 
@@ -171,6 +201,10 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                       {loc && <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>{loc}</span>}
                     </div>
 
+                    {(job.department ?? '').trim() && (
+                      <p style={{ margin: '0 0 4px', fontSize: 12, color: SUBTEXT }}>{job.department}</p>
+                    )}
+
                     {/* Responsibility bullets */}
                     {grouped.length > 0 && (
                       <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: 'disc' }}>
@@ -186,7 +220,7 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                       return (
                         <div key={pi} style={{ marginTop: 6, paddingLeft: 14 }}>
                           <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>
-                            {proj.projectName}
+                            {projectTitleWithClient(proj, `Project ${pi + 1}`)}
                           </p>
                           {subResps.length > 0 && (
                             <ul style={{ margin: '0 0 0 14px', padding: 0, listStyleType: 'circle' }}>
@@ -300,9 +334,9 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
             </section>
           )}
 
-          {/* Certifications — last */}
+          {/* Certifications */}
           {(resumeData.certifications?.length ?? 0) > 0 && (
-            <section>
+            <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Certifications" />
               <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
                 {resumeData.certifications!.map((cert, i) => (
@@ -315,6 +349,8 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
               </ul>
             </section>
           )}
+
+          <SupplementalSections data={resumeData} text={TEXT} subtext={SUBTEXT} Header={SectionHeader} />
 
         </div>
       </div>

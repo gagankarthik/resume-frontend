@@ -244,6 +244,21 @@ export function formatProjectTitle(proj: Record<string, unknown>, idx: number, t
   return total > 1 ? `Project ${idx + 1}: ${clean}` : clean;
 }
 
+// Sub-project display title including the client and location, which were
+// extracted but previously never shown in any format.
+export function projectTitleWithClient(
+  proj: { projectName?: string; clientName?: string; projectLocation?: string },
+  fallback: string,
+): string {
+  const name = (proj.projectName || fallback).trim();
+  const client = (proj.clientName ?? '').trim();
+  const loc = (proj.projectLocation ?? '').trim();
+  let title = name;
+  if (client && !name.toLowerCase().includes(client.toLowerCase())) title += ` — Client: ${client}`;
+  if (loc && !title.toLowerCase().includes(loc.toLowerCase())) title += ` (${loc})`;
+  return title;
+}
+
 // ── Shared DOCX spacing / tab constants ───────────────────────────────────
 
 export const BODY_SPACING = { after: 0, line: 240, lineRule: LineRuleType.AUTO };

@@ -11,6 +11,7 @@ import {
   groupResponsibilities,
   BODY_SPACING, RIGHT_TAB, TABLE_BORDER,
 } from './shared';
+import { buildSupplementalDocx, buildProjectsDocx } from './supplemental';
 
 // Shared accent color — identical to Ohio
 const COLOR = '1F497D';
@@ -260,7 +261,10 @@ function buildEmploymentHistory(data: ResumeData): Paragraph[] {
 
       // Sub-projects → comma-joined sub-responsibilities
       (job.projects ?? []).forEach((proj, pi) => {
-        const title = formatProjectTitle(proj as unknown as Record<string, unknown>, pi, (job.projects ?? []).length);
+        const base = formatProjectTitle(proj as unknown as Record<string, unknown>, pi, (job.projects ?? []).length);
+        const title = proj.clientName && !base.toLowerCase().includes(proj.clientName.toLowerCase())
+          ? `${base} — Client: ${proj.clientName}`
+          : base;
         paras.push(boldLabel(title));
         paras.push(...respLine(proj.projectResponsibilities ?? []));
         if (proj.keyTechnologies) {
@@ -440,6 +444,10 @@ export async function buildPADocx(data: ResumeData): Promise<void> {
         spacer(200),
         sectionHdr('Employment History:'),
         ...buildEmploymentHistory(data),
+        // Standalone Projects — preview shows them; the DOCX previously dropped them
+        ...(data.projects?.length
+          ? [spacer(), sectionHdr('Projects:'), ...buildProjectsDocx(data, { font: 'Calibri', bulletRef: 'resumeBullet', sectionHdr })]
+          : []),
         spacer(),
         tightHdr('Professional Summary'),
         ...(data.professionalSummary ?? []).flatMap(pt =>
@@ -465,6 +473,9 @@ export async function buildPADocx(data: ResumeData): Promise<void> {
         spacer(),
         tightHdr('Technical Skills'),
         ...buildSkills(data),
+        // Awards, publications, languages, volunteer, patents, memberships,
+        // conferences, courses, training, interests, references.
+        ...buildSupplementalDocx(data, { font: 'Calibri', bulletRef: 'resumeBullet', sectionHdr }),
       ],
     }],
   });

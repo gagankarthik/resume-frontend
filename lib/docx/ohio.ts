@@ -7,10 +7,11 @@ import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
 import {
   stripBullet, normalizeMonthAbbr, splitProseToBullets, sortEducation,
-  formatLocation, getEdLocation, formatProjectTitle,
+  formatLocation, getEdLocation, formatProjectTitle, projectTitleWithClient,
   groupResponsibilities,
   BODY_SPACING, RIGHT_TAB, TABLE_BORDER,
 } from './shared';
+import { buildSupplementalDocx, buildProjectsDocx } from './supplemental';
 
 // ── Education table ────────────────────────────────────────────────────────
 
@@ -255,7 +256,10 @@ function buildEmploymentHistory(data: ResumeData): Paragraph[] {
 
       // Sub-projects → comma-joined sub-responsibilities
       (job.projects ?? []).forEach((proj, pi) => {
-        const title = formatProjectTitle(proj as unknown as Record<string, unknown>, pi, (job.projects ?? []).length);
+        const base = formatProjectTitle(proj as unknown as Record<string, unknown>, pi, (job.projects ?? []).length);
+        const title = proj.clientName && !base.toLowerCase().includes(proj.clientName.toLowerCase())
+          ? `${base} — Client: ${proj.clientName}`
+          : base;
         paras.push(boldLabel(title));
         paras.push(...respLine(proj.projectResponsibilities ?? []));
         if (proj.keyTechnologies) {
@@ -437,6 +441,10 @@ export async function buildOhioDocx(data: ResumeData): Promise<void> {
         // Employment History
         sectionHdr('Employment History:'),
         ...buildEmploymentHistory(data),
+        // Standalone Projects — preview shows them; the DOCX previously dropped them
+        ...(data.projects?.length
+          ? [spacer(), sectionHdr('Projects:'), ...buildProjectsDocx(data, { font: 'Calibri', bulletRef: 'resumeBullet', sectionHdr })]
+          : []),
         // Professional Summary
         spacer(),
         tightHdr('Professional Summary'),
@@ -464,6 +472,9 @@ export async function buildOhioDocx(data: ResumeData): Promise<void> {
         spacer(),
         tightHdr('Technical Skills'),
         ...buildSkills(data),
+        // Awards, publications, languages, volunteer, patents, memberships,
+        // conferences, courses, training, interests, references.
+        ...buildSupplementalDocx(data, { font: 'Calibri', bulletRef: 'resumeBullet', sectionHdr }),
       ],
     }],
   });
