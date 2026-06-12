@@ -26,6 +26,15 @@ function resolveJobLocation(raw: string): string {
   return /^(remote|work from home|wfh|n\/a)$/i.test(f.trim()) ? '' : f;
 }
 
+function shortenLinkedIn(url: string): string {
+  try {
+    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
+    return `linkedin.com${u.pathname.replace(/\/$/, '')}`;
+  } catch {
+    return url;
+  }
+}
+
 // ── Paragraph helpers ──────────────────────────────────────────────────────
 
 const sectionHdr = (label: string) =>
@@ -53,10 +62,17 @@ const plain = (text: string) =>
     children: [new TextRun({ text, font: 'Georgia', size: 22 })],
   });
 
-const italic = (text: string) =>
+// Bullet with a bold lead ("Title — issuer (date)") — used by the list-style
+// supplemental sections so the DOCX matches the preview's rendering.
+const labeledBullet = (boldText: string, rest = '') =>
   new Paragraph({
-    spacing: SP,
-    children: [new TextRun({ text, italics: true, font: 'Georgia', size: 22 })],
+    numbering: { reference: 'georgiaBullet', level: 0 },
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: BODY_SPACING,
+    children: [
+      new TextRun({ text: boldText, bold: true, size: 22, font: 'Georgia' }),
+      ...(rest ? [new TextRun({ text: rest, size: 22, font: 'Georgia' })] : []),
+    ],
   });
 
 const bulletPara = (text: string) =>
@@ -368,6 +384,113 @@ function buildCertifications(data: ResumeData): Paragraph[] {
   });
 }
 
+// ── Supplemental sections ───────────────────────────────────────────────────
+// Everything the GeorgiaFormat preview shows after Certifications. Kept in the
+// same order so the downloaded DOCX never silently drops a section the user
+// saw on screen.
+
+function buildSupplementalSections(data: ResumeData): Paragraph[] {
+  const out: Paragraph[] = [];
+  const section = (label: string, paras: Paragraph[]) => {
+    if (paras.length) {
+      out.push(sectionHdr(label));
+      out.push(...paras);
+    }
+  };
+  const suffix = (...parts: (string | false | undefined | null)[]) =>
+    parts.filter(Boolean).join('');
+
+  section('Awards & Honors', (data.awards ?? []).map(a =>
+    labeledBullet(a.title ?? '', suffix(
+      a.issuer && ` — ${a.issuer}`,
+      a.date && ` (${a.date})`,
+      a.description && ` · ${a.description}`,
+    )),
+  ));
+
+  section('Publications', (data.publications ?? []).map(p =>
+    labeledBullet(p.title ?? '', suffix(
+      (p.journal ?? p.publisher) && ` — ${p.journal ?? p.publisher}`,
+      p.date && ` (${p.date})`,
+    )),
+  ));
+
+  const langs = (data.languagesSpoken ?? [])
+    .map(l => (l.proficiency ? `${l.language} (${l.proficiency})` : l.language))
+    .filter(Boolean)
+    .join(', ');
+  section('Languages', langs ? [plain(langs)] : []);
+
+  const vol: Paragraph[] = [];
+  (data.volunteerExperience ?? []).forEach((v, i) => {
+    if (i > 0) vol.push(blankLine());
+    vol.push(
+      new Paragraph({
+        tabStops: [RIGHT_TAB],
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: SP,
+        children: [
+          new TextRun({ text: [v.organization, v.role].filter(Boolean).join(' — '), bold: true, size: 22, font: 'Georgia' }),
+          ...(v.period
+            ? [new TextRun({ text: '\t' }), new TextRun({ text: normalizeMonthAbbr(v.period), size: 22, font: 'Georgia' })]
+            : []),
+        ],
+      }),
+    );
+    if (v.description) vol.push(plain(v.description));
+    (v.responsibilities ?? []).filter(r => r?.trim()).forEach(r => vol.push(bulletPara(r)));
+  });
+  section('Volunteer Experience', vol);
+
+  section('Patents', (data.patents ?? []).map(p =>
+    labeledBullet(p.title ?? '', suffix(
+      p.patentNumber && ` — ${p.patentNumber}`,
+      p.date && ` (${p.date})`,
+    )),
+  ));
+
+  section('Professional Memberships', (data.memberships ?? []).map(m =>
+    labeledBullet(m.organization ?? '', suffix(
+      m.role && ` — ${m.role}`,
+      m.period && ` (${normalizeMonthAbbr(m.period)})`,
+    )),
+  ));
+
+  section('Conferences & Talks', (data.conferences ?? []).map(c =>
+    labeledBullet(c.title ?? '', suffix(
+      c.event && ` — ${c.event}`,
+      c.date && ` (${c.date})`,
+    )),
+  ));
+
+  section('Courses', (data.courses ?? []).map(c =>
+    labeledBullet(c.name ?? '', suffix(
+      c.provider && ` — ${c.provider}`,
+      c.date && ` (${c.date})`,
+    )),
+  ));
+
+  section('Training', (data.training ?? []).map(t =>
+    labeledBullet(t.name ?? '', suffix(
+      t.provider && ` — ${t.provider}`,
+      t.date && ` (${t.date})`,
+    )),
+  ));
+
+  section('Interests', data.interests?.length ? [plain(data.interests.join(', '))] : []);
+
+  section('References', (data.references ?? []).map(r =>
+    labeledBullet(r.name ?? '', suffix(
+      r.title && ` — ${r.title}`,
+      r.company && `, ${r.company}`,
+      r.email && ` · ${r.email}`,
+      r.phone && ` · ${r.phone}`,
+    )),
+  ));
+
+  return out;
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────
 
 export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
@@ -390,8 +513,32 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
     }),
   );
 
+  // Title — centered, matching the on-screen preview
   if (data.title) {
-    children.push(italic(data.title));
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 0, after: 60, line: 240, lineRule: LineRuleType.AUTO },
+        children: [new TextRun({ text: data.title, bold: true, size: 24, font: 'Georgia' })],
+      }),
+    );
+  }
+
+  // Contact line — email | phone | linkedin | location (was missing from the DOCX)
+  const contactParts: string[] = [];
+  if (data.email)    contactParts.push(data.email);
+  if (data.phone)    contactParts.push(data.phone);
+  if (data.linkedin) contactParts.push(shortenLinkedIn(data.linkedin));
+  if (data.location) contactParts.push(data.location);
+  if (contactParts.length) {
+    children.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 0, after: 160, line: 240, lineRule: LineRuleType.AUTO },
+        children: [new TextRun({ text: contactParts.join('  |  '), size: 18, font: 'Georgia' })],
+      }),
+    );
+  } else if (data.title) {
     children.push(blankLine());
   }
 
@@ -431,6 +578,11 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
     children.push(sectionHdr('Certifications'));
     children.push(...certParas);
   }
+
+  // Awards, publications, languages, volunteer, patents, memberships,
+  // conferences, courses, training, interests, references — same order as
+  // the preview.
+  children.push(...buildSupplementalSections(data));
 
   const doc = new Document({
     styles: {
