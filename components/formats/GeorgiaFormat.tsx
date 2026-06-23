@@ -132,7 +132,8 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
               <SectionHeader label="Employment History" />
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc    = resolveLocation(job.location ?? '');
-                const period = normalizeTillDate(normalizeMonthAbbr(job.workPeriod ?? ''));
+                // Small hyphen for the date range, not the en dash normalizeMonthAbbr emits.
+                const period = normalizeTillDate(normalizeMonthAbbr(job.workPeriod ?? '')).replace(/\s*–\s*/g, ' - ');
                 const liveResps = (job.responsibilities ?? []).filter(r => r && r.trim());
                 const points = liveResps.flatMap(splitProseToBullets);
                 return (
@@ -157,7 +158,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
                     {points.length > 0 && (
                       <>
                         <p style={{ margin: '2px 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>Responsibilities</p>
-                        <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: "'-  '" }}>
+                        <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: 'disc' }}>
                           {points.map((r, j) => (
                             <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>{stripBullet(r)}</li>
                           ))}
@@ -174,7 +175,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
                             {projectTitleWithClient(proj, `Project ${pi + 1}`)}
                           </p>
                           {subResps.length > 0 && (
-                            <ul style={{ margin: '0 0 0 14px', padding: 0, listStyleType: "'-  '" }}>
+                            <ul style={{ margin: '0 0 0 14px', padding: 0, listStyleType: 'circle' }}>
                               {subResps.flatMap(r => splitProseToBullets(r)).map((r, ri) => (
                                 <li key={ri} style={{ fontSize: 11, color: SUBTEXT, lineHeight: 1.45, marginBottom: 1 }}>
                                   {stripBullet(r)}
@@ -240,7 +241,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
                     <p style={{ margin: '2px 0 3px', fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>{proj.description}</p>
                   )}
                   {(proj.highlights?.length ?? 0) > 0 && (
-                    <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: "'-  '" }}>
+                    <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: 'disc' }}>
                       {proj.highlights!.flatMap(splitProseToBullets).map((h, j) => (
                         <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 1 }}>{stripBullet(h)}</li>
                       ))}
@@ -264,7 +265,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
               {(() => {
                 const items = (resumeData.professionalSummary ?? []).flatMap(splitProseToBullets);
                 return (
-                  <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: "'-  '" }}>
+                  <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
                     {items.map((pt, i) => (
                       <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.55, marginBottom: 3 }}>{pt}</li>
                     ))}
@@ -309,7 +310,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
           {(resumeData.certifications?.length ?? 0) > 0 && (
             <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Certifications" />
-              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: "'-  '" }}>
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
                 {resumeData.certifications!.map((cert, i) => (
                   <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
                     <span style={{ fontWeight: 700, color: TEXT }}>{cert.name}</span>

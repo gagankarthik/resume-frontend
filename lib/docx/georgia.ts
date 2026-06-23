@@ -99,7 +99,8 @@ function buildEmployment(data: ResumeData): Paragraph[] {
   data.employmentHistory.forEach((job, idx) => {
     try {
       const loc    = resolveJobLocation(job.location ?? '');
-      const period = normalizeTillDate(normalizeMonthAbbr(job.workPeriod ?? ''));
+      // Use a small hyphen for the date range, not the en dash normalizeMonthAbbr emits.
+      const period = normalizeTillDate(normalizeMonthAbbr(job.workPeriod ?? '')).replace(/\s*–\s*/g, ' - ');
 
       if (idx > 0) paras.push(blankLine());
 
@@ -499,7 +500,7 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
         levels: [{
           level: 0,
           format: LevelFormat.BULLET,
-          text: '-',
+          text: '•',
           alignment: AlignmentType.LEFT,
           style: {
             paragraph: { indent: { left: 360, hanging: 360 } },
