@@ -39,6 +39,12 @@ function shortenGitHub(url: string): string {
   }
 }
 
+const FONT = 'Verdana, Geneva, sans-serif';
+
+// Normalize any "ongoing" end token to a single consistent "Till Date".
+const normalizeTillDate = (period = '') =>
+  period.replace(/\b(present|current|till\s*date|to\s*date|now|ongoing|present day)\b/gi, 'Till Date');
+
 const SectionHeader = ({ label }: { label: string }) => (
   <p style={{
     margin: '0 0 6px',
@@ -47,8 +53,7 @@ const SectionHeader = ({ label }: { label: string }) => (
     color: TEXT,
     textTransform: 'uppercase',
     letterSpacing: '0.07em',
-    fontFamily: 'Georgia, "Times New Roman", serif',
-    borderBottom: '1px solid #000000',
+    fontFamily: FONT,
     paddingBottom: 3,
   }}>
     {label}
@@ -91,7 +96,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
     <div className="h-full overflow-y-auto bg-gray-100 px-4 py-5">
       <div
         className="bg-white mx-auto shadow-md rounded-lg overflow-hidden"
-        style={{ maxWidth: 760, fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 13, color: TEXT }}
+        style={{ maxWidth: 760, fontFamily: FONT, fontSize: 13, color: TEXT }}
       >
         {/* ── Header ── */}
         <div style={{ padding: '22px 28px 16px' }}>
@@ -105,7 +110,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
             letterSpacing: '0.04em',
             textAlign: 'center',
             textTransform: 'uppercase',
-            fontFamily: 'Georgia, "Times New Roman", serif',
+            fontFamily: FONT,
           }}>
             {resumeData.name || 'Full Name'}
           </h1>
@@ -127,7 +132,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
               <SectionHeader label="Employment History" />
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc    = resolveLocation(job.location ?? '');
-                const period = normalizeMonthAbbr(job.workPeriod ?? '');
+                const period = normalizeTillDate(normalizeMonthAbbr(job.workPeriod ?? ''));
                 const liveResps = (job.responsibilities ?? []).filter(r => r && r.trim());
                 const points = liveResps.flatMap(splitProseToBullets);
                 return (
@@ -141,7 +146,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
 
                     {/* Role + Location */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12, color: SUBTEXT, fontStyle: 'italic' }}>{job.roleName}</span>
+                      <span style={{ fontSize: 12, color: SUBTEXT }}>{job.roleName}</span>
                       {loc && <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>{loc}</span>}
                     </div>
 
@@ -150,11 +155,14 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
                     )}
 
                     {points.length > 0 && (
-                      <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: 'disc' }}>
-                        {points.map((r, j) => (
-                          <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>{stripBullet(r)}</li>
-                        ))}
-                      </ul>
+                      <>
+                        <p style={{ margin: '2px 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>Responsibilities</p>
+                        <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: "'-  '" }}>
+                          {points.map((r, j) => (
+                            <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>{stripBullet(r)}</li>
+                          ))}
+                        </ul>
+                      </>
                     )}
 
                     {/* Per-job projects (consulting structure) */}
@@ -166,7 +174,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
                             {projectTitleWithClient(proj, `Project ${pi + 1}`)}
                           </p>
                           {subResps.length > 0 && (
-                            <ul style={{ margin: '0 0 0 14px', padding: 0, listStyleType: 'circle' }}>
+                            <ul style={{ margin: '0 0 0 14px', padding: 0, listStyleType: "'-  '" }}>
                               {subResps.flatMap(r => splitProseToBullets(r)).map((r, ri) => (
                                 <li key={ri} style={{ fontSize: 11, color: SUBTEXT, lineHeight: 1.45, marginBottom: 1 }}>
                                   {stripBullet(r)}
@@ -226,13 +234,13 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
                     )}
                   </div>
                   {proj.role && (
-                    <p style={{ margin: '1px 0 3px', fontSize: 12, fontStyle: 'italic', color: SUBTEXT }}>{proj.role}</p>
+                    <p style={{ margin: '1px 0 3px', fontSize: 12, color: SUBTEXT }}>{proj.role}</p>
                   )}
                   {proj.description && (
                     <p style={{ margin: '2px 0 3px', fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>{proj.description}</p>
                   )}
                   {(proj.highlights?.length ?? 0) > 0 && (
-                    <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                    <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: "'-  '" }}>
                       {proj.highlights!.flatMap(splitProseToBullets).map((h, j) => (
                         <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 1 }}>{stripBullet(h)}</li>
                       ))}
@@ -249,34 +257,6 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
             </section>
           )}
 
-          {/* Education */}
-          {sortedEdu.length > 0 && (
-            <section style={{ marginBottom: 16 }}>
-              <SectionHeader label="Education" />
-              {sortedEdu.map((edu, i) => {
-                const loc = getEdLocation(edu.location ?? '');
-                return (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
-                    <span style={{ fontSize: 12, color: TEXT }}>
-                      {edu.degree && <strong>{edu.degree}</strong>}
-                      {edu.areaOfStudy && <span style={{ color: SUBTEXT }}>{' '}in {edu.areaOfStudy}</span>}
-                      {edu.school && (
-                        <span style={{ color: SUBTEXT }}>
-                          {' '}—{' '}{edu.school}{loc ? `, ${loc}` : ''}
-                        </span>
-                      )}
-                    </span>
-                    {edu.date && (
-                      <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>
-                        {edu.date}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </section>
-          )}
-
           {/* Professional Summary */}
           {(resumeData.professionalSummary?.length ?? 0) > 0 && (
             <section style={{ marginBottom: 16 }}>
@@ -284,7 +264,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
               {(() => {
                 const items = (resumeData.professionalSummary ?? []).flatMap(splitProseToBullets);
                 return (
-                  <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+                  <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: "'-  '" }}>
                     {items.map((pt, i) => (
                       <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.55, marginBottom: 3 }}>{pt}</li>
                     ))}
@@ -329,7 +309,7 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
           {(resumeData.certifications?.length ?? 0) > 0 && (
             <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Certifications" />
-              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
+              <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: "'-  '" }}>
                 {resumeData.certifications!.map((cert, i) => (
                   <li key={i} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>
                     <span style={{ fontWeight: 700, color: TEXT }}>{cert.name}</span>
@@ -342,6 +322,34 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
           )}
 
           <SupplementalSections data={resumeData} text={TEXT} subtext={SUBTEXT} Header={SectionHeader} />
+
+          {/* Education — closing section; nothing is rendered after it */}
+          {sortedEdu.length > 0 && (
+            <section style={{ marginBottom: 16 }}>
+              <SectionHeader label="Education" />
+              {sortedEdu.map((edu, i) => {
+                const loc = getEdLocation(edu.location ?? '');
+                return (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, color: TEXT }}>
+                      {edu.degree && <strong>{edu.degree}</strong>}
+                      {edu.areaOfStudy && <span style={{ color: SUBTEXT }}>{' '}in {edu.areaOfStudy}</span>}
+                      {edu.school && (
+                        <span style={{ color: SUBTEXT }}>
+                          {' '}—{' '}{edu.school}{loc ? `, ${loc}` : ''}
+                        </span>
+                      )}
+                    </span>
+                    {edu.date && (
+                      <span style={{ fontSize: 11, color: SUBTEXT, whiteSpace: 'nowrap', marginLeft: 10 }}>
+                        {edu.date}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </section>
+          )}
 
         </div>
       </div>

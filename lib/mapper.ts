@@ -31,7 +31,9 @@ function buildPeriod(start?: string, end?: string, isCurrent?: boolean): string 
 
 function buildWorkPeriod(start?: string, end?: string, isCurrent?: boolean): string {
   const s = start ?? '';
-  const e = isCurrent ? 'Till date' : (end ?? 'Till date');
+  // Any ongoing/empty end is normalized to a single consistent "Till Date".
+  const rawEnd = isCurrent ? 'Till Date' : (end ?? 'Till Date');
+  const e = /\b(present|current|till\s*date|to\s*date|now|ongoing)\b/i.test(rawEnd) ? 'Till Date' : rawEnd;
   if (!s && !e) return '';
   if (!s) return e;
   if (!e) return s;
