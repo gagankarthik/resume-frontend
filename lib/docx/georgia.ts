@@ -59,7 +59,6 @@ const sectionHdr = (label: string) =>
       new TextRun({
         text: label.toUpperCase(),
         bold: true,
-        underline: {},
         size: 24,
         font: 'Georgia',
       }),
@@ -68,7 +67,7 @@ const sectionHdr = (label: string) =>
 
 const plain = (text: string) =>
   new Paragraph({
-    alignment: AlignmentType.JUSTIFIED,
+    alignment: AlignmentType.LEFT,
     spacing: SP,
     children: [new TextRun({ text, font: 'Georgia', size: 22 })],
   });
@@ -77,7 +76,7 @@ const plain = (text: string) =>
 const bulletPara = (text: string) =>
   new Paragraph({
     numbering: { reference: 'georgiaBullet', level: 0 },
-    alignment: AlignmentType.JUSTIFIED,
+    alignment: AlignmentType.LEFT,
     spacing: BODY_SPACING,
     children: [new TextRun({ text: stripBullet(text), font: 'Georgia', size: 22 })],
   });
@@ -104,7 +103,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
       paras.push(
         new Paragraph({
           tabStops: [RIGHT_TAB],
-          alignment: AlignmentType.JUSTIFIED,
+          alignment: AlignmentType.LEFT,
           spacing: SP,
           children: [
             new TextRun({ text: job.companyName ?? 'Company', bold: true, size: 24, font: 'Georgia' }),
@@ -117,7 +116,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
       paras.push(
         new Paragraph({
           tabStops: [RIGHT_TAB],
-          alignment: AlignmentType.JUSTIFIED,
+          alignment: AlignmentType.LEFT,
           spacing: SP_AFTER,
           children: [
             new TextRun({ text: job.roleName ?? 'Role', italics: true, size: 22, font: 'Georgia' }),
@@ -143,7 +142,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
 
         paras.push(
           new Paragraph({
-            alignment: AlignmentType.JUSTIFIED,
+            alignment: AlignmentType.LEFT,
             spacing: SP,
             indent: { left: 360 },
             children: [new TextRun({ text: title, bold: true, size: 22, font: 'Georgia' })],
@@ -153,7 +152,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         if (subResps.length) {
           paras.push(
             new Paragraph({
-              alignment: AlignmentType.JUSTIFIED,
+              alignment: AlignmentType.LEFT,
               spacing: SP,
               indent: { left: 360 },
               children: [
@@ -166,7 +165,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         if (proj.keyTechnologies) {
           paras.push(
             new Paragraph({
-              alignment: AlignmentType.JUSTIFIED,
+              alignment: AlignmentType.LEFT,
               spacing: SP,
               indent: { left: 360 },
               children: [
@@ -183,7 +182,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         if (sub.title) {
           paras.push(
             new Paragraph({
-              alignment: AlignmentType.JUSTIFIED,
+              alignment: AlignmentType.LEFT,
               spacing: SP,
               children: [new TextRun({ text: sub.title + ':', bold: true, size: 22, font: 'Georgia' })],
             }),
@@ -193,7 +192,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         if (items.length) {
           paras.push(
             new Paragraph({
-              alignment: AlignmentType.JUSTIFIED,
+              alignment: AlignmentType.LEFT,
               spacing: SP,
               children: [
                 new TextRun({ text: items.map(r => stripBullet(r)).join(', '), size: 22, font: 'Georgia' }),
@@ -206,7 +205,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
       if (job.keyTechnologies) {
         paras.push(
           new Paragraph({
-            alignment: AlignmentType.JUSTIFIED,
+            alignment: AlignmentType.LEFT,
             spacing: { ...SP, before: 120 },
             children: [
               new TextRun({ text: 'Key Technologies/Skills: ', bold: true, size: 20, font: 'Georgia' }),
@@ -235,7 +234,7 @@ function buildProjects(data: ResumeData): Paragraph[] {
     paras.push(
       new Paragraph({
         tabStops: [RIGHT_TAB],
-        alignment: AlignmentType.JUSTIFIED,
+        alignment: AlignmentType.LEFT,
         spacing: SP,
         children: [
           new TextRun({ text: proj.name ?? '', bold: true, size: 24, font: 'Georgia' }),
@@ -264,7 +263,7 @@ function buildProjects(data: ResumeData): Paragraph[] {
     if ((proj.technologies ?? []).length) {
       paras.push(
         new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
+          alignment: AlignmentType.LEFT,
           spacing: SP,
           children: [
             new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Georgia' }),
@@ -290,7 +289,7 @@ function buildSummarySections(data: ResumeData): Paragraph[] {
     if (sub.title) {
       paras.push(
         new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
+          alignment: AlignmentType.LEFT,
           spacing: SP,
           children: [new TextRun({ text: sub.title, bold: true, size: 22, font: 'Georgia' })],
         }),
@@ -299,7 +298,7 @@ function buildSummarySections(data: ResumeData): Paragraph[] {
     if (items.length) {
       paras.push(
         new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
+          alignment: AlignmentType.LEFT,
           spacing: SP,
           children: [new TextRun({ text: items.map(r => stripBullet(r)).join(', '), size: 22, font: 'Georgia' })],
         }),
@@ -320,7 +319,7 @@ function buildEducation(data: ResumeData): Paragraph[] {
     const date       = edu.date ?? '';
     return new Paragraph({
       tabStops: [RIGHT_TAB],
-      alignment: AlignmentType.JUSTIFIED,
+      alignment: AlignmentType.LEFT,
       spacing: SP_AFTER,
       children: [
         ...(degreeText ? [new TextRun({ text: degreeText, bold: true, size: 22, font: 'Georgia' })] : []),
@@ -355,7 +354,7 @@ function buildSkillsParagraphs(data: ResumeData): Paragraph[] {
   if (!rows.length) return [];
   return rows.map(row =>
     new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
+      alignment: AlignmentType.LEFT,
       spacing: SP,
       children: [
         new TextRun({ text: `${row.area}: `, bold: true, size: 22, font: 'Georgia' }),
@@ -376,7 +375,7 @@ function buildCertifications(data: ResumeData): Paragraph[] {
     const suffix = parts.length ? ` — ${parts.join(' • ')}` : '';
     return new Paragraph({
       numbering: { reference: 'georgiaBullet', level: 0 },
-      alignment: AlignmentType.JUSTIFIED,
+      alignment: AlignmentType.LEFT,
       spacing: BODY_SPACING,
       children: [
         new TextRun({ text: cert.name ?? '', bold: true, size: 22, font: 'Georgia' }),
@@ -400,24 +399,12 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
         new TextRun({
           text: (data.name ?? 'Candidate Name').toUpperCase(),
           bold: true,
-          underline: {},
-          size: 44,
+          size: 40,
           font: 'Georgia',
         }),
       ],
     }),
   );
-
-  // Title — centered, matching the on-screen preview
-  if (data.title) {
-    children.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        spacing: { before: 0, after: 60, line: 240, lineRule: LineRuleType.AUTO },
-        children: [new TextRun({ text: data.title, bold: true, size: 24, font: 'Georgia' })],
-      }),
-    );
-  }
 
   // Contact line — email | phone | linkedin | location (was missing from the DOCX)
   const contactParts: string[] = [];
@@ -434,8 +421,6 @@ export async function buildGeorgiaDocx(data: ResumeData): Promise<void> {
         children: [new TextRun({ text: contactParts.join('  |  '), size: 18, font: 'Georgia' })],
       }),
     );
-  } else if (data.title) {
-    children.push(blankLine());
   }
 
   if ((data.employmentHistory?.length ?? 0) > 0) {

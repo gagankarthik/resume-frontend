@@ -48,7 +48,6 @@ const SectionHeader = ({ label }: { label: string }) => (
     textTransform: 'uppercase',
     letterSpacing: '0.07em',
     fontFamily: 'Georgia, "Times New Roman", serif',
-    textDecoration: 'underline',
     borderBottom: '1px solid #000000',
     paddingBottom: 3,
   }}>
@@ -106,18 +105,10 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
             letterSpacing: '0.04em',
             textAlign: 'center',
             textTransform: 'uppercase',
-            textDecoration: 'underline',
             fontFamily: 'Georgia, "Times New Roman", serif',
           }}>
             {resumeData.name || 'Full Name'}
           </h1>
-
-          {/* Title — centered */}
-          {resumeData.title && (
-            <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 600, color: SUBTEXT, textAlign: 'center' }}>
-              {resumeData.title}
-            </p>
-          )}
 
           {/* Contact row — centered */}
           {contactItems.length > 0 && (
