@@ -16,8 +16,16 @@ const jetbrains = JetBrains_Mono({
   display: 'swap',
 });
 
+// Canonical and Open Graph URLs are built from this. Amplify serves the same
+// build from a CloudFront host and any custom domain, so it has to come from
+// the environment rather than being hardcoded to one of them.
+const ORIGIN =
+  process.env.NEXT_APP_ORIGIN ??
+  (process.env.AWS_APP_ID ? `https://${process.env.AWS_BRANCH}.${process.env.AWS_APP_ID}.amplifyapp.com` : null) ??
+  'http://localhost:3000';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://truecopy.oceanbluesolutions.com'),
+  metadataBase: new URL(ORIGIN),
   title: {
     default: 'Truecopy: resumes set to the format the state requires',
     template: '%s · Truecopy',
