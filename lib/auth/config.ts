@@ -52,6 +52,24 @@ export function extractionUrl(): string {
   return (process.env.NEXT_EXTRACTION_API_URL ?? '').replace(/\/$/, '');
 }
 
+/** The matching engine, called only from /api/match/*. */
+export function matchUrl(): string {
+  return (process.env.NEXT_RESUME_MATCH_API_URL ?? '').replace(/\/$/, '');
+}
+
+/**
+ * Shared secret the matching engine expects in `X-API-Key`. Server-only — it is
+ * read inside route handlers and never reaches a component that could ship it.
+ */
+export function matchKey(): string | undefined {
+  return process.env.NEXT_RESUME_MATCH_API_KEY || undefined;
+}
+
+/** True when the deployment can reach the matching engine at all. */
+export function matchConfigured(): boolean {
+  return Boolean(matchUrl());
+}
+
 /**
  * Absolute origin for this request. Amplify sits behind CloudFront, so trust
  * the forwarded headers, and let NEXT_APP_ORIGIN override when a custom domain

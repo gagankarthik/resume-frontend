@@ -1,58 +1,93 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { APIResponse } from '@/lib/types';
 import { loadResume, saveResume } from '@/lib/store';
 import { mapToResumeData } from '@/lib/mapper';
 import ResumeEditor from '@/components/editor/ResumeEditor';
 import ResumePreview from '@/components/formats/ResumePreview';
-import {
-  IconCheckCircle,
-  IconSave,
-  IconUpload,
-  IconSplit,
-  IconPreview,
-  IconEdit,
-  IconPrint,
-  IconDownload,
-} from '@/components/ui/icons';
-import AppHeader from '@/components/app/AppHeader';
-import { Button, ButtonLink } from '@/components/ui/Button';
 import StateDownloadDialog from '@/components/formats/StateDownloadDialog';
+import AppHeader from '@/components/app/AppHeader';
+import { Button } from '@/components/ui/Button';
+import { IconClose, IconDownload, IconPreview, IconPrint } from '@/components/ui/icons';
 
 type StateFormat = 'ohio' | 'pennsylvania' | 'oceanblue' | 'georgia';
-type PanelMode   = 'split' | 'editor' | 'preview';
 
+const FORMATS: { id: StateFormat; label: string }[] = [
+  { id: 'ohio',         label: 'Ohio (VectorVMS)' },
+  { id: 'pennsylvania', label: 'Pennsylvania (PeopleFluent)' },
+  { id: 'georgia',      label: 'Georgia (GA Standard)' },
+  { id: 'oceanblue',    label: 'Oceanblue (ATS)' },
+];
+
+/** How much of the width the fields keep, in percent. Clamped so neither side
+ *  can be dragged out of usefulness. */
+const MIN_SPLIT = 30;
+const MAX_SPLIT = 75;
+
+/**
+ * Review the extracted record.
+ *
+ * One section at a time, on a plain page. The formatted result is a panel you
+ * open when you want to check it, and drag to whatever width the comparison
+ * needs — a wide preview to read the layout, a narrow one to keep typing.
+ */
 export default function EditorPage() {
   const router = useRouter();
-  const [apiData, setApiData]   = useState<APIResponse | null>(null);
-  const [format, setFormat]     = useState<StateFormat>('ohio');
-  const [saved, setSaved]       = useState(false);
-  const [panel, setPanel]       = useState<PanelMode>('split');
-  const [dlgOpen, setDlgOpen]   = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [splitPct, setSplitPct] = useState(50);
-  const dragging = useRef(false);
+  const [apiData, setApiData] = useState<APIResponse | null>(null);
+  const [format, setFormat] = useState<StateFormat>('ohio');
+  const [saved, setSaved] = useState(true);
+  const [preview, setPreview] = useState(false);
+  const [dlgOpen, setDlgOpen] = useState(false);
+  const [split, setSplit] = useState(55);
+
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
 
   useEffect(() => {
     const data = loadResume();
-    if (!data) { router.replace('/upload'); return; }
+    if (!data) {
+      router.replace('/upload');
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setApiData(data);
   }, [router]);
 
-  // Detect mobile and auto-collapse split mode
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+  // The divider. Pointer capture keeps the drag alive over the preview iframe
+  // and off the edge of the window, and covers touch and pen without a second
+  // set of handlers.
+  const startDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragging.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   }, []);
 
-  useEffect(() => {
-    if (isMobile && panel === 'split') setPanel('editor');
-  }, [isMobile, panel]);
+  const onDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    setSplit(Math.min(Math.max(pct, MIN_SPLIT), MAX_SPLIT));
+  }, []);
+
+  const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  // Same handle, from the keyboard.
+  const nudge = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === 'ArrowLeft' ? -2 : e.key === 'ArrowRight' ? 2 : 0;
+    if (step === 0) return;
+    e.preventDefault();
+    setSplit(s => Math.min(Math.max(s + step, MIN_SPLIT), MAX_SPLIT));
+  }, []);
 
   const handleChange = useCallback((updated: APIResponse) => {
     setApiData(updated);
@@ -62,33 +97,12 @@ export default function EditorPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const onDividerMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    dragging.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-    const onMove = (ev: MouseEvent) => {
-      if (!dragging.current || !containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      setSplitPct(Math.min(Math.max(((ev.clientX - rect.left) / rect.width) * 100, 25), 75));
-    };
-    const onUp = () => {
-      dragging.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, []);
-
   if (!apiData) {
     return (
-      <div className="min-h-screen bg-gov-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-3 border-gov-blue border-t-transparent rounded-full animate-spin" />
-          <p className="text-gov-gray-400 text-sm">Loading…</p>
+          <span className="h-8 w-8 animate-spin rounded-full border-2 border-tc-line-2 border-t-tc-azure" />
+          <p className="text-[13.5px] text-tc-muted">Loading…</p>
         </div>
       </div>
     );
@@ -97,147 +111,120 @@ export default function EditorPage() {
   const resumeData = mapToResumeData(apiData);
   const candidateName = apiData.personal_information?.full_name ?? '';
 
-  // On mobile, split collapses to editor
-  const effectivePanel: PanelMode = isMobile && panel === 'split' ? 'editor' : panel;
-
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-tc-desk">
-
-      {/* ── Header ── */}
-      <AppHeader step="Review" dense>
-        {/* Panel mode — desktop only (mobile uses bottom tabs) */}
-        <div className="hidden items-center gap-0.5 rounded-lg bg-tc-desk p-1 md:flex">
-          {([
-            { id: 'editor',  label: 'Edit',    Icon: IconEdit  },
-            { id: 'split',   label: 'Split',   Icon: IconSplit },
-            { id: 'preview', label: 'Preview', Icon: IconPreview    },
-          ] as { id: PanelMode; label: string; Icon: React.FC<{ size?: number }> }[]).map(({ id, label, Icon }) => (
-            <button
-              key={id}
-              onClick={() => setPanel(id)}
-              aria-pressed={panel === id}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
-                panel === id
-                  ? 'bg-white text-tc-ink shadow-[0_1px_2px_rgba(11,27,51,0.10)]'
-                  : 'text-tc-muted hover:text-tc-ink'
-              }`}
-            >
-              <Icon size={12} />
-              <span className="hidden lg:inline">{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Save status */}
-        <span
-          className={`flex shrink-0 items-center gap-1.5 px-1 text-[12.5px] font-medium ${
-            saved ? 'text-tc-mint' : 'text-tc-faint'
-          }`}
+    <div className="min-h-screen bg-white">
+      <AppHeader>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setPreview(p => !p)}
+          aria-pressed={preview}
+          title={preview ? 'Hide preview' : 'Show preview'}
         >
-          {saved ? <IconCheckCircle size={13} /> : <IconSave size={13} className="animate-pulse" />}
-          <span className="hidden sm:inline">{saved ? 'Saved' : 'Saving…'}</span>
-        </span>
-
-        {candidateName && (
-          <span className="hidden max-w-[160px] items-center rounded-md bg-tc-desk px-2.5 py-1 text-[12.5px] text-tc-muted lg:flex">
-            <span className="truncate">{candidateName}</span>
-          </span>
-        )}
-
-        <Button variant="secondary" size="sm" onClick={() => window.print()}>
-          <IconPrint size={13} />
-          <span className="hidden sm:inline">Print</span>
+          <IconPreview size={13} />
+          <span className="hidden md:inline">{preview ? 'Hide preview' : 'Preview'}</span>
         </Button>
 
         <Button size="sm" onClick={() => setDlgOpen(true)}>
           <IconDownload size={13} />
           <span className="hidden sm:inline">Export</span>
         </Button>
-
-        <ButtonLink href="/upload" variant="ghost" size="sm">
-          <IconUpload size={13} />
-          <span className="hidden md:inline">New upload</span>
-        </ButtonLink>
       </AppHeader>
 
-      {/* ── Main panels ── */}
-      <div ref={containerRef} className="flex-1 flex overflow-hidden">
+      <div
+        ref={containerRef}
+        className={preview ? 'lg:flex lg:h-[calc(100vh-4rem)] lg:overflow-hidden' : ''}
+      >
+        <main
+          className={preview ? 'lg:h-full lg:shrink-0 lg:overflow-y-auto' : ''}
+          // Width only means anything beside the preview; on a narrow screen the
+          // panel covers the page anyway.
+          style={preview ? { width: `${split}%` } : undefined}
+        >
+          <ResumeEditor
+            data={apiData}
+            onChange={handleChange}
+            onExport={() => setDlgOpen(true)}
+            candidateName={candidateName}
+            saved={saved}
+            // Beside the preview this pane scrolls on its own, so the tabs pin
+            // to the pane rather than clearing the site header.
+            stickyUnderHeader={!preview}
+          />
+        </main>
 
-        {/* EDITOR PANEL */}
-        {(effectivePanel === 'editor' || effectivePanel === 'split') && (
+        {preview && (
           <div
-            className="bg-white border-r border-gov-gray-200 overflow-hidden flex flex-col min-w-0"
-            style={effectivePanel === 'split' ? { width: `${splitPct}%`, flexShrink: 0 } : { flex: 1 }}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize preview"
+            aria-valuenow={Math.round(split)}
+            aria-valuemin={MIN_SPLIT}
+            aria-valuemax={MAX_SPLIT}
+            tabIndex={0}
+            onPointerDown={startDrag}
+            onPointerMove={onDrag}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onKeyDown={nudge}
+            className="group relative hidden w-1.5 shrink-0 cursor-col-resize bg-tc-line transition-colors hover:bg-tc-azure focus-visible:bg-tc-azure lg:block"
           >
-            <div className="px-4 py-2 bg-gov-gray-50 border-b border-gov-gray-200 flex items-center gap-2 flex-shrink-0">
-              <div className="w-1.5 h-4 bg-gov-blue rounded-full" />
-              <p className="text-xs font-bold text-gov-gray-600 uppercase tracking-widest">Field Editor</p>
-              <span className="text-gov-gray-300 text-xs hidden xl:inline">· auto-saves</span>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <ResumeEditor data={apiData} onChange={handleChange} />
-            </div>
+            <span className="absolute inset-y-0 left-1/2 flex -translate-x-1/2 flex-col items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+              {[0, 1, 2, 3].map(i => (
+                <span key={i} className="h-1 w-1 rounded-full bg-white" />
+              ))}
+            </span>
           </div>
         )}
 
-        {/* DRAG HANDLE — desktop split only */}
-        {effectivePanel === 'split' && (
-          <div
-            onMouseDown={onDividerMouseDown}
-            className="w-1.5 flex-shrink-0 bg-gov-gray-200 hover:bg-gov-blue cursor-col-resize transition-colors duration-150 relative group z-10"
+        {/* The formatted result. A resizable side panel on a wide screen, a
+            sheet on a narrow one — never a permanent half of the page. */}
+        {preview && (
+          <aside
+            className="fixed inset-0 z-40 flex flex-col bg-tc-desk lg:static lg:z-auto lg:h-full lg:min-w-0 lg:flex-1"
+            aria-label="Preview"
           >
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {[0,1,2,3].map(i => <div key={i} className="w-1 h-1 rounded-full bg-white" />)}
-            </div>
-          </div>
-        )}
+            <div className="flex shrink-0 items-center gap-3 border-b border-tc-line bg-white px-4 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-tc-faint">
+                Preview
+              </p>
 
-        {/* PREVIEW PANEL */}
-        {(effectivePanel === 'preview' || effectivePanel === 'split') && (
-          <div className="flex-1 overflow-hidden flex flex-col bg-gov-gray-100 min-w-0">
-            <div className="px-4 py-2 bg-gov-gray-50 border-b border-gov-gray-200 flex items-center gap-2 flex-shrink-0">
-              <div className="w-1.5 h-4 bg-gov-gold rounded-full" />
-              <p className="text-xs font-bold text-gov-gray-600 uppercase tracking-widest">Preview</p>
-              <span className="text-gov-gray-300 text-xs hidden xl:inline">· live</span>
-              <div className="flex-1" />
               <select
                 value={format}
                 onChange={e => setFormat(e.target.value as StateFormat)}
-                className="text-[11px] font-semibold text-gov-gray-700 bg-white border border-gov-gray-200 rounded px-2 py-1 focus:outline-none focus:border-gov-blue cursor-pointer"
+                aria-label="Template"
+                className="ml-auto rounded-md border border-tc-line-2 bg-white px-2 py-1 text-[12.5px] text-tc-ink focus:border-tc-azure focus:outline-none"
               >
-                <option value="ohio">Ohio (VectorVMS)</option>
-                <option value="pennsylvania">Pennsylvania (PeopleFluent)</option>
-                <option value="georgia">Georgia (GA Standard)</option>
-                <option value="oceanblue">Oceanblue (ATS)</option>
+                {FORMATS.map(f => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
               </select>
+
+              <button
+                onClick={() => window.print()}
+                title="Print"
+                aria-label="Print"
+                className="rounded-md p-1.5 text-tc-muted hover:bg-tc-desk hover:text-tc-ink"
+              >
+                <IconPrint size={15} />
+              </button>
+
+              <button
+                onClick={() => setPreview(false)}
+                aria-label="Close preview"
+                className="rounded-md p-1.5 text-tc-muted hover:bg-tc-desk hover:text-tc-ink lg:hidden"
+              >
+                <IconClose size={15} />
+              </button>
             </div>
-            <div className="flex-1 overflow-hidden">
+
+            <div className="flex-1 overflow-y-auto">
               <ResumePreview resumeData={resumeData} format={format} />
             </div>
-          </div>
+          </aside>
         )}
-      </div>
-
-      {/* ── Mobile bottom tab bar ── */}
-      <div className="flex md:hidden flex-shrink-0 bg-white border-t border-gov-gray-200 safe-area-inset-bottom">
-        <button
-          onClick={() => setPanel('editor')}
-          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-semibold transition-colors ${
-            effectivePanel !== 'preview' ? 'text-gov-blue' : 'text-gov-gray-400'
-          }`}
-        >
-          <IconEdit size={18} />
-          <span>Edit</span>
-        </button>
-        <button
-          onClick={() => setPanel('preview')}
-          className={`flex-1 flex flex-col items-center py-2.5 gap-0.5 text-[11px] font-semibold transition-colors ${
-            effectivePanel === 'preview' ? 'text-gov-blue' : 'text-gov-gray-400'
-          }`}
-        >
-          <IconPreview size={18} />
-          <span>Preview</span>
-        </button>
       </div>
 
       <StateDownloadDialog

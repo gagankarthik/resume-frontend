@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import UploadZone from '@/components/upload/UploadZone';
 import AppHeader from '@/components/app/AppHeader';
-import { Button, ButtonLink } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { extractResume } from '@/lib/api';
 import { saveResume } from '@/lib/store';
 
@@ -61,11 +61,7 @@ export default function UploadPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      <AppHeader step="Upload">
-        <ButtonLink href="/editor" variant="ghost" size="sm">
-          Skip to editor
-        </ButtonLink>
-      </AppHeader>
+      <AppHeader />
 
       <main className="mx-auto grid w-full max-w-[1140px] flex-1 gap-8 px-5 py-10 lg:grid-cols-[minmax(0,1fr)_300px] lg:py-14">
         <div>

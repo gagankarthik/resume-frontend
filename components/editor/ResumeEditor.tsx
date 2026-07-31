@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import type { APIResponse } from '@/lib/types';
 import PersonalInfoEditor from './sections/PersonalInfoEditor';
 import SummaryEditor from './sections/SummaryEditor';
@@ -10,29 +10,67 @@ import SkillsEditor from './sections/SkillsEditor';
 import CertificationsEditor from './sections/CertificationsEditor';
 import ProjectsEditor from './sections/ProjectsEditor';
 import MoreSectionsEditor from './sections/MoreSectionsEditor';
-import { FiUser, FiFileText, FiBriefcase, FiBook, FiZap, FiAward, FiCode, FiMoreHorizontal } from 'react-icons/fi';
+import { Button } from '@/components/ui/Button';
+import { IconAlert, IconArrowLeft, IconArrowRight, IconDownload } from '@/components/ui/icons';
+
+/**
+ * The review pass, one section at a time.
+ *
+ * Checking an extracted resume is a sequence, not a dashboard: name and
+ * contact, then the summary, then each job. So the page shows one section,
+ * says where you are in the run, and moves you on — instead of putting eight
+ * panels on screen and leaving you to work out which you have looked at.
+ */
 
 interface Props {
   data: APIResponse;
   onChange: (data: APIResponse) => void;
+  /** Offered at the end of the run. */
+  onExport: () => void;
+  /** Whose resume this is, shown beside the tabs. */
+  candidateName?: string;
+  /** Autosave state, shown beside the tabs. */
+  saved?: boolean;
+  /**
+   * Where the tab strip sticks. Beside the preview each pane scrolls on its
+   * own, so the strip pins to the top of the pane; on the plain page it has to
+   * clear the site header.
+   */
+  stickyUnderHeader?: boolean;
 }
 
-type SectionId = 'personal' | 'summary' | 'work' | 'education' | 'skills' | 'certifications' | 'projects' | 'more';
+type SectionId =
+  | 'personal'
+  | 'summary'
+  | 'work'
+  | 'education'
+  | 'skills'
+  | 'certifications'
+  | 'projects'
+  | 'more';
 
-const SECTIONS: { id: SectionId; label: string; Icon: React.FC<{ size?: number }>; count?: (d: APIResponse) => number }[] = [
-  { id: 'personal',       label: 'Personal Info',    Icon: FiUser },
-  { id: 'summary',        label: 'Summary',          Icon: FiFileText },
-  { id: 'work',           label: 'Work Experience',  Icon: FiBriefcase,    count: d => d.work_experience?.length ?? 0 },
-  { id: 'education',      label: 'Education',        Icon: FiBook,         count: d => d.education?.length ?? 0 },
-  { id: 'skills',         label: 'Skills',           Icon: FiZap },
-  { id: 'certifications', label: 'Certifications',   Icon: FiAward,        count: d => d.certifications?.length ?? 0 },
-  { id: 'projects',       label: 'Projects',         Icon: FiCode,         count: d => d.projects?.length ?? 0 },
-  { id: 'more',           label: 'More Sections',    Icon: FiMoreHorizontal },
+const SECTIONS: {
+  id: SectionId;
+  label: string;
+  short: string;
+  count?: (d: APIResponse) => number;
+}[] = [
+  { id: 'personal',       label: 'Personal info',   short: 'Personal' },
+  { id: 'summary',        label: 'Summary',         short: 'Summary' },
+  { id: 'work',           label: 'Work experience', short: 'Experience',  count: d => d.work_experience?.length ?? 0 },
+  { id: 'education',      label: 'Education',       short: 'Education',   count: d => d.education?.length ?? 0 },
+  { id: 'skills',         label: 'Skills',          short: 'Skills' },
+  { id: 'certifications', label: 'Certifications',  short: 'Certs',       count: d => d.certifications?.length ?? 0 },
+  { id: 'projects',       label: 'Projects',        short: 'Projects',    count: d => d.projects?.length ?? 0 },
+  { id: 'more',           label: 'More sections',   short: 'More' },
 ];
 
-// Banner summarising the backend's extraction-quality audit. Only shows when
-// there is something actionable: coverage gaps or removed/suspect values.
-const AuditBanner: React.FC<{ data: APIResponse }> = ({ data }) => {
+/**
+ * What the extraction pass reported about itself: how much of the source it
+ * captured, and anything it dropped. Shown only when there is something to act
+ * on, and only on the first section — it is about the whole document.
+ */
+function AuditNote({ data }: { data: APIResponse }) {
   const [open, setOpen] = useState(false);
   const audit = data._metadata?.audit;
   if (!audit) return null;
@@ -40,40 +78,69 @@ const AuditBanner: React.FC<{ data: APIResponse }> = ({ data }) => {
   const coverage = audit.coverage_percent;
   const warnings = audit.warnings ?? [];
   const missed = audit.missed_lines ?? [];
-  const hasIssues = (coverage !== undefined && coverage < 95) || warnings.length > 0 || missed.length > 0;
-  if (!hasIssues) return null;
+  if (!((coverage !== undefined && coverage < 95) || warnings.length > 0 || missed.length > 0)) {
+    return null;
+  }
 
   return (
-    <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-      <button onClick={() => setOpen(o => !o)} className="flex w-full items-center gap-2 text-left font-bold">
-        <span>⚠</span>
+    <div className="mb-6 rounded-lg border border-tc-amber/30 bg-tc-amber/[0.05] px-4 py-3">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center gap-2 text-left text-[13px] font-medium text-tc-ink"
+      >
+        <IconAlert size={14} className="shrink-0 text-tc-amber" />
         <span className="flex-1">
-          Extraction check{coverage !== undefined ? `: ${coverage}% of the resume captured` : ''}
-          {warnings.length > 0 ? ` · ${warnings.length} warning${warnings.length > 1 ? 's' : ''}` : ''}
+          {coverage !== undefined ? `${coverage}% of the resume was captured` : 'Extraction check'}
+          {warnings.length > 0 && ` · ${warnings.length} warning${warnings.length > 1 ? 's' : ''}`}
         </span>
-        <span className="font-normal underline">{open ? 'hide' : 'details'}</span>
+        <span className="text-[12.5px] font-normal text-tc-muted underline underline-offset-2">
+          {open ? 'Hide' : 'Details'}
+        </span>
       </button>
+
       {open && (
-        <div className="mt-2 space-y-1">
-          {warnings.map((w, i) => <p key={`w${i}`}>• {w}</p>)}
+        <div className="mt-3 space-y-1.5 text-[12.5px] leading-relaxed text-tc-muted">
+          {warnings.map((w, i) => (
+            <p key={`w${i}`}>· {w}</p>
+          ))}
           {missed.length > 0 && (
             <>
-              <p className="font-bold mt-1">Lines that may not have been captured:</p>
-              {missed.map((m, i) => <p key={`m${i}`} className="truncate">– {m}</p>)}
+              <p className="pt-1 font-medium text-tc-ink">Lines that may be missing:</p>
+              {missed.map((m, i) => (
+                <p key={`m${i}`} className="truncate">
+                  – {m}
+                </p>
+              ))}
             </>
           )}
-          <p className="mt-1 text-amber-700">Review the affected sections and fill in anything missing before downloading.</p>
         </div>
       )}
     </div>
   );
-};
+}
 
-const ResumeEditor: React.FC<Props> = ({ data, onChange }) => {
-  const [active, setActive] = useState<SectionId>('personal');
+export default function ResumeEditor({
+  data,
+  onChange,
+  onExport,
+  candidateName,
+  saved = true,
+  stickyUnderHeader = true,
+}: Props) {
+  const [step, setStep] = useState(0);
+  const scroller = useRef<HTMLDivElement>(null);
+  const section = SECTIONS[step];
+  const last = step === SECTIONS.length - 1;
 
-  const renderSection = () => {
-    switch (active) {
+  const go = (next: number) => {
+    setStep(next);
+    // Whichever is doing the scrolling — the page, or this pane beside the
+    // preview — put the top of the new section in view.
+    scroller.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  };
+
+  const body = () => {
+    switch (section.id) {
       case 'personal':       return <PersonalInfoEditor data={data} onChange={onChange} />;
       case 'summary':        return <SummaryEditor data={data} onChange={onChange} />;
       case 'work':           return <WorkExperienceEditor data={data} onChange={onChange} />;
@@ -86,42 +153,91 @@ const ResumeEditor: React.FC<Props> = ({ data, onChange }) => {
   };
 
   return (
-    <div className="flex h-full">
-      {/* Sidebar */}
-      <nav className="w-36 flex-shrink-0 border-r border-gov-gray-200 bg-gov-gray-50 py-2 overflow-y-auto">
-        <p className="px-3 pt-2 pb-1 text-[9px] font-black text-gov-gray-400 uppercase tracking-[0.15em]">Sections</p>
-        {SECTIONS.map(s => {
-          const cnt = s.count?.(data);
-          const Icon = s.Icon;
-          return (
-            <button
-              key={s.id}
-              onClick={() => setActive(s.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-all border-l-2 ${
-                active === s.id
-                  ? 'border-gov-blue bg-gov-blue-light text-gov-blue font-bold'
-                  : 'border-transparent text-gov-gray-600 hover:bg-gov-gray-100 hover:text-gov-gray-900 font-medium'
-              }`}
+    <div ref={scroller}>
+      {/* The sections, as tabs. They stay on screen while you work down a
+          section, and scroll sideways rather than wrapping when the pane is
+          narrow — the row is always one line, always in the same place. */}
+      <div
+        className={`sticky z-20 border-b border-tc-line bg-white/95 backdrop-blur ${
+          stickyUnderHeader ? 'top-16' : 'top-0'
+        }`}
+      >
+        <div className="mx-auto flex max-w-[880px] items-center gap-4 px-4 sm:px-6">
+          <nav aria-label="Resume sections" className="-mb-px min-w-0 flex-1">
+            <ol
+              role="tablist"
+              className="flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
-              <Icon size={13} />
-              <span className="flex-1 leading-tight">{s.label}</span>
-              {cnt !== undefined && cnt > 0 && (
-                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
-                  active === s.id ? 'bg-gov-blue text-white' : 'bg-gov-gray-200 text-gov-gray-600'
-                }`}>{cnt}</span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
+              {SECTIONS.map((s, i) => {
+                const count = s.count?.(data);
+                const current = i === step;
+                return (
+                  <li key={s.id} className="shrink-0">
+                    <button
+                      role="tab"
+                      aria-selected={current}
+                      onClick={() => go(i)}
+                      className={`relative flex items-center gap-1.5 px-2.5 py-3.5 text-[13px] font-medium transition-colors sm:px-3 ${
+                        current ? 'text-tc-ink' : 'text-tc-muted hover:text-tc-ink'
+                      }`}
+                    >
+                      {s.short}
+                      {count !== undefined && count > 0 && (
+                        <span
+                          className={`rounded px-1 text-[10.5px] font-semibold ${
+                            current ? 'bg-tc-azure/[0.12] text-tc-azure' : 'bg-tc-desk-2 text-tc-muted'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      )}
+                      {current && (
+                        <span className="absolute inset-x-1.5 bottom-0 h-[2px] rounded-full bg-tc-azure" />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
 
-      {/* Editor content */}
-      <div className="flex-1 overflow-y-auto p-5 bg-white">
-        <AuditBanner data={data} />
-        {renderSection()}
+          <span className="hidden shrink-0 items-center gap-2 text-[12.5px] text-tc-faint md:flex">
+            {candidateName && <span className="max-w-[180px] truncate">{candidateName}</span>}
+            <span className={saved ? 'text-tc-faint' : 'text-tc-azure'}>
+              {saved ? 'Saved' : 'Saving…'}
+            </span>
+          </span>
+        </div>
+      </div>
+
+      <div className="mx-auto w-full max-w-[880px] px-4 py-7 sm:px-6 lg:py-9">
+        {step === 0 && <AuditNote data={data} />}
+        {body()}
+
+        {/* Move on */}
+        <div className="mt-10 flex flex-col-reverse gap-3 border-t border-tc-line pt-5 sm:flex-row sm:items-center sm:justify-between">
+          {/* On the first section there is nowhere to go back to: the button
+              holds its place on a wide screen and disappears on a narrow one. */}
+          <div className={step === 0 ? 'hidden sm:block sm:invisible' : ''}>
+            <Button variant="secondary" onClick={() => go(step - 1)} disabled={step === 0}>
+              <IconArrowLeft size={14} />
+              <span className="truncate">{SECTIONS[Math.max(step - 1, 0)].label}</span>
+            </Button>
+          </div>
+
+          {last ? (
+            <Button onClick={onExport} className="w-full sm:w-auto">
+              <IconDownload size={14} />
+              Export
+            </Button>
+          ) : (
+            <Button onClick={() => go(step + 1)} className="w-full sm:w-auto">
+              <span className="truncate">{SECTIONS[step + 1].label}</span>
+              <IconArrowRight size={14} />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
-};
-
-export default ResumeEditor;
+}

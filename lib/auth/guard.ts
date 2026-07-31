@@ -19,6 +19,21 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 }
 
 /**
+ * Gate a route handler. A route answers with 401 rather than a redirect, since
+ * the caller is fetch. Open deployments (no pool configured) pass, matching the
+ * page-level gate.
+ *
+ * `owner` is the caller's stable Cognito id — it tags what they store in the
+ * matching engine so a search can be narrowed to one person's own uploads.
+ * There is no id to tag with when the app runs open, and none is invented.
+ */
+export async function apiSession(): Promise<{ ok: boolean; owner: string | null }> {
+  if (!authConfigured()) return { ok: true, owner: null };
+  const user = await getSessionUser();
+  return user ? { ok: true, owner: user.sub } : { ok: false, owner: null };
+}
+
+/**
  * Gate a server component. Sends the browser to the hosted UI and back to
  * where it was heading. When Cognito is not configured the app runs open, so
  * local development and self-hosted installs are not bricked by a missing pool.

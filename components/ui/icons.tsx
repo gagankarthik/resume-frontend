@@ -165,6 +165,16 @@ export const IconPlus = (p: IconProps) => (
   </Icon>
 );
 
+/* A page brought to a mark — the record measured against a job. */
+export const IconMatch = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="2.5" y="3" width="9" height="11" rx="2.5" />
+    <path d="M5.5 6.5h3M5.5 9.5h3" />
+    <circle cx="15" cy="14.5" r="3.5" />
+    <path d="M13.6 14.5l1 1 1.8-2" />
+  </Icon>
+);
+
 export const IconTrash = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5" />

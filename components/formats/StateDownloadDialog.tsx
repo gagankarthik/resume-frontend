@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { FiX, FiDownload, FiPrinter } from 'react-icons/fi';
+import { useEffect, useRef, useState } from 'react';
 import type { ResumeData } from '@/lib/types';
+import { Button } from '@/components/ui/Button';
+import { IconCheck, IconClose, IconDownload, IconPrint } from '@/components/ui/icons';
 
 type StateOption = 'ohio' | 'pennsylvania' | 'oceanblue' | 'georgia';
 
@@ -13,115 +14,153 @@ interface Props {
   defaultFormat?: StateOption;
 }
 
-const StateDownloadDialog: React.FC<Props> = ({ isOpen, onClose, resumeData, defaultFormat = 'ohio' }) => {
-  const [selected, setSelected] = useState<StateOption>(defaultFormat);
+/**
+ * Export.
+ *
+ * One decision — which template — then the file. The templates are listed as
+ * rows with what each one is actually for, because "Ohio" and "Pennsylvania"
+ * mean nothing on their own to someone filling a requisition; the system that
+ * expects the format is the useful part of the name.
+ */
+const TEMPLATES: { id: StateOption; label: string; detail: string }[] = [
+  { id: 'ohio',         label: 'Ohio',         detail: 'VectorVMS submissions' },
+  { id: 'pennsylvania', label: 'Pennsylvania', detail: 'PeopleFluent submissions' },
+  { id: 'georgia',      label: 'Georgia',      detail: 'GA state standard' },
+  { id: 'oceanblue',    label: 'Oceanblue',    detail: 'Plain ATS-safe layout' },
+];
 
-  React.useEffect(() => {
-    if (isOpen) setSelected(defaultFormat);
-  }, [isOpen, defaultFormat]);
+export default function StateDownloadDialog({
+  isOpen,
+  onClose,
+  resumeData,
+  defaultFormat = 'ohio',
+}: Props) {
+  const [selected, setSelected] = useState<StateOption>(defaultFormat);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) setSelected(defaultFormat);
+  }, [isOpen, defaultFormat]);
+
+  // Escape closes, and focus moves into the dialog so the keyboard lands here.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    panel.current?.focus();
+    return () => document.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const handleDownloadDocx = async () => {
+  const download = async () => {
     setDownloading(true);
     setError(null);
     try {
-      if (selected === 'ohio') {
-        const { buildOhioDocx } = await import('@/lib/docx');
-        await buildOhioDocx(resumeData);
-      } else if (selected === 'pennsylvania') {
-        const { buildPADocx } = await import('@/lib/docx');
-        await buildPADocx(resumeData);
-      } else if (selected === 'oceanblue') {
-        const { buildOceanblueDocx } = await import('@/lib/docx');
-        await buildOceanblueDocx(resumeData);
-      } else if (selected === 'georgia') {
-        const { buildGeorgiaDocx } = await import('@/lib/docx');
-        await buildGeorgiaDocx(resumeData);
-      }
+      const docx = await import('@/lib/docx');
+      if (selected === 'ohio') await docx.buildOhioDocx(resumeData);
+      else if (selected === 'pennsylvania') await docx.buildPADocx(resumeData);
+      else if (selected === 'oceanblue') await docx.buildOceanblueDocx(resumeData);
+      else await docx.buildGeorgiaDocx(resumeData);
     } catch (e) {
       console.error('DOCX generation failed', e);
-      setError('Failed to generate document. Please try again.');
+      setError('The document could not be built. Try again.');
     } finally {
       setDownloading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-        {/* Header */}
-        <div className="bg-gov-navy px-6 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-white font-bold text-base">Export Resume</h2>
-            <p className="text-blue-300/60 text-xs">Select format and download</p>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-tc-ink/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="export-title"
+        tabIndex={-1}
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-tc-line bg-white shadow-[0_24px_60px_-24px_rgba(11,27,51,0.45)] outline-none sm:max-w-[460px] sm:rounded-2xl"
+      >
+        <div className="flex items-start gap-4 border-b border-tc-line px-5 py-4 sm:px-6">
+          <div className="min-w-0 flex-1">
+            <h2 id="export-title" className="text-[17px] font-semibold text-tc-ink">
+              Export
+            </h2>
+            <p className="mt-0.5 text-[13px] text-tc-muted">
+              Every field you reviewed goes into the file.
+            </p>
           </div>
-          <button onClick={onClose} className="text-white/50 hover:text-white transition-colors">
-            <FiX size={20} />
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="-mr-1 shrink-0 rounded-md p-1.5 text-tc-faint transition-colors hover:bg-tc-desk hover:text-tc-ink"
+          >
+            <IconClose size={16} />
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
-          {/* State selector */}
-          <div>
-            <p className="text-xs font-bold text-gov-gray-500 uppercase tracking-widest mb-3">State Format</p>
-            <div className="grid grid-cols-2 gap-3">
-              {([
-                { id: 'ohio' as StateOption, emoji: '🏛️', label: 'Ohio', sub: 'OH Standard' },
-                { id: 'pennsylvania' as StateOption, emoji: '🔔', label: 'Pennsylvania', sub: 'PA Standard' },
-                { id: 'georgia' as StateOption, emoji: '🍑', label: 'Georgia', sub: 'GA Standard' },
-                { id: 'oceanblue' as StateOption, emoji: '🌊', label: 'Oceanblue', sub: 'ATS Standard' },
-              ]).map(s => (
+        <div className="px-5 py-5 sm:px-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-tc-faint">
+            Template
+          </p>
+
+          <div role="radiogroup" aria-label="Template" className="mt-3 space-y-2">
+            {TEMPLATES.map(t => {
+              const active = selected === t.id;
+              return (
                 <button
-                  key={s.id}
-                  onClick={() => setSelected(s.id)}
-                  className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
-                    selected === s.id
-                      ? 'border-gov-blue bg-gov-blue-light text-gov-blue'
-                      : 'border-gov-gray-200 hover:border-gov-gray-300 text-gov-gray-600'
+                  key={t.id}
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setSelected(t.id)}
+                  className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
+                    active
+                      ? 'border-tc-azure bg-tc-azure/[0.05]'
+                      : 'border-tc-line hover:border-tc-line-2 hover:bg-tc-desk/60'
                   }`}
                 >
-                  <span className="text-3xl mb-1.5">{s.emoji}</span>
-                  <span className="font-bold text-sm">{s.label}</span>
-                  <span className="text-xs text-gov-gray-400 mt-0.5">{s.sub}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] font-medium text-tc-ink">{t.label}</span>
+                    <span className="block text-[12.5px] text-tc-muted">{t.detail}</span>
+                  </span>
+                  <span
+                    className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border transition-colors ${
+                      active ? 'border-tc-azure bg-tc-azure text-white' : 'border-tc-line-2'
+                    }`}
+                  >
+                    {active && <IconCheck size={12} />}
+                  </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-          {/* Error */}
           {error && (
-            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>
+            <p className="mt-4 rounded-lg border border-tc-rose/30 bg-tc-rose/[0.05] px-3 py-2 text-[12.5px] text-tc-ink">
+              {error}
+            </p>
           )}
 
-          {/* Actions */}
-          <div className="space-y-2">
-            <button
-              onClick={handleDownloadDocx}
-              disabled={downloading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gov-blue hover:bg-gov-blue-mid disabled:opacity-50 text-white rounded-lg font-bold text-sm transition-colors"
-            >
-              <FiDownload size={15} />
-              {downloading ? 'Building document…' : 'Download Word (.docx)'}
-            </button>
-            <button
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row-reverse">
+            <Button onClick={download} disabled={downloading} className="w-full sm:w-auto sm:flex-1">
+              <IconDownload size={14} />
+              {downloading ? 'Building…' : 'Download .docx'}
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => window.print()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gov-gray-100 hover:bg-gov-gray-200 text-gov-gray-700 rounded-lg font-semibold text-sm transition-colors"
+              className="w-full sm:w-auto sm:flex-1"
             >
-              <FiPrinter size={15} />
-              Print / Save as PDF
-            </button>
+              <IconPrint size={14} />
+              Print or PDF
+            </Button>
           </div>
-
-          <p className="text-[11px] text-gov-gray-400 text-center">
-            All extracted fields are included in the download.
-          </p>
         </div>
       </div>
     </div>
   );
-};
-
-export default StateDownloadDialog;
+}
