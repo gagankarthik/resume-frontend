@@ -2,7 +2,6 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
-import { FiUploadCloud, FiFile, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 
 interface Props {
   onUpload: (file: File) => void;
@@ -18,19 +17,29 @@ const ACCEPTED = {
 
 const UploadZone: React.FC<Props> = ({ onUpload, disabled }) => {
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
 
-  const onDrop = useCallback((accepted: File[], rejected: FileRejection[]) => {
-    setError(null);
-    if (rejected.length > 0) {
-      setError(rejected[0].errors[0]?.message ?? 'Invalid file');
-      return;
-    }
-    if (accepted.length > 0) {
-      setPreview(accepted[0].name);
-      onUpload(accepted[0]);
-    }
-  }, [onUpload]);
+  const onDrop = useCallback(
+    (accepted: File[], rejected: FileRejection[]) => {
+      setError(null);
+      if (rejected.length > 0) {
+        const code = rejected[0].errors[0]?.code;
+        setError(
+          code === 'file-too-large'
+            ? 'That file is over 20 MB. Try a smaller one.'
+            : code === 'file-invalid-type'
+              ? 'That file type is not supported. Use PDF, DOCX, DOC, or TXT.'
+              : (rejected[0].errors[0]?.message ?? 'That file could not be read.'),
+        );
+        return;
+      }
+      if (accepted.length > 0) {
+        setPicked(accepted[0].name);
+        onUpload(accepted[0]);
+      }
+    },
+    [onUpload],
+  );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -40,79 +49,78 @@ const UploadZone: React.FC<Props> = ({ onUpload, disabled }) => {
     disabled,
   });
 
+  const state = error ? 'error' : picked ? 'done' : isDragActive ? 'drag' : 'idle';
+
+  const frame = {
+    idle: 'border-tc-line-2 bg-tc-desk/50 hover:border-tc-azure/60 hover:bg-tc-azure/[0.03]',
+    drag: 'border-tc-azure bg-tc-azure/[0.06]',
+    done: 'border-tc-mint/60 bg-tc-mint/[0.05]',
+    error: 'border-tc-rose/60 bg-tc-rose/[0.04]',
+  }[state];
+
   return (
     <div className="w-full">
       <div
         {...getRootProps()}
-        className={`
-          relative rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer
-          flex flex-col items-center justify-center gap-4 p-12 text-center
-          ${isDragActive
-            ? 'border-blue-500 bg-blue-50 scale-[1.01]'
-            : error
-              ? 'border-red-400 bg-red-50'
-              : preview
-                ? 'border-green-400 bg-green-50'
-                : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50/40'
-          }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-        `}
+        className={`flex cursor-pointer flex-col items-center justify-center gap-4 rounded-xl border border-dashed p-12 text-center transition-colors duration-200 ${frame} ${
+          disabled ? 'cursor-not-allowed opacity-60' : ''
+        }`}
       >
         <input {...getInputProps()} />
 
-        {/* Icon */}
-        <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all ${
-          isDragActive ? 'bg-blue-100' : error ? 'bg-red-100' : preview ? 'bg-green-100' : 'bg-white shadow-md'
-        }`}>
-          {error
-            ? <FiAlertCircle className="text-red-500" size={36} />
-            : preview
-              ? <FiCheckCircle className="text-green-500" size={36} />
-              : isDragActive
-                ? <FiUploadCloud className="text-blue-500 animate-bounce" size={36} />
-                : <FiUploadCloud className="text-blue-400" size={36} />
-          }
-        </div>
+        <span
+          className={`grid h-12 w-12 place-items-center rounded-xl border ${
+            state === 'error'
+              ? 'border-tc-rose/30 bg-white text-tc-rose'
+              : state === 'done'
+                ? 'border-tc-mint/30 bg-white text-tc-mint'
+                : 'border-tc-line bg-white text-tc-azure'
+          }`}
+        >
+          {state === 'error' ? (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+              <path d="M10 6.5v4.5M10 14h.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+          ) : state === 'done' ? (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+              <path d="M5 10.5 8.5 14 15 6.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+              <path d="M10 13V4m0 0L6.5 7.5M10 4l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M3.5 12.5v2A1.5 1.5 0 0 0 5 16h10a1.5 1.5 0 0 0 1.5-1.5v-2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          )}
+        </span>
 
-        {/* Text */}
-        {preview ? (
+        {state === 'done' && (
           <div>
-            <div className="flex items-center justify-center gap-2 text-green-700 font-semibold text-lg">
-              <FiFile size={18} />
-              {preview}
-            </div>
-            <p className="text-green-600 text-sm mt-1">Ready to process — extracting now…</p>
+            <p className="font-mono text-[13.5px] text-tc-ink">{picked}</p>
+            <p className="mt-1 text-[13px] text-tc-mint">Reading the file…</p>
           </div>
-        ) : isDragActive ? (
+        )}
+
+        {state === 'drag' && (
+          <p className="text-[15px] font-medium text-tc-azure">Drop it to start</p>
+        )}
+
+        {state === 'error' && (
           <div>
-            <p className="text-blue-600 font-semibold text-lg">Drop it here!</p>
-            <p className="text-blue-500 text-sm mt-1">We&apos;ll handle the rest</p>
+            <p className="text-[15px] font-medium text-tc-ink">{error}</p>
+            <p className="mt-1 text-[13px] text-tc-muted">Pick another file to try again.</p>
           </div>
-        ) : error ? (
+        )}
+
+        {state === 'idle' && (
           <div>
-            <p className="text-red-600 font-semibold">Upload failed</p>
-            <p className="text-red-500 text-sm mt-1">{error}</p>
-            <p className="text-gray-500 text-xs mt-2">Try a different file</p>
-          </div>
-        ) : (
-          <div>
-            <p className="text-gray-700 font-semibold text-lg">Drag & drop your resume</p>
-            <p className="text-gray-500 text-sm mt-1">or <span className="text-blue-600 font-medium underline underline-offset-2">click to browse</span></p>
-            <p className="text-gray-400 text-xs mt-3">PDF, DOCX, DOC, TXT — up to 20 MB</p>
+            <p className="text-[15px] font-medium text-tc-ink">
+              Drop a resume here, or <span className="text-tc-azure underline underline-offset-2">browse</span>
+            </p>
+            <p className="mt-1.5 text-[13px] text-tc-muted">PDF, DOCX, DOC, or TXT, up to 20 MB</p>
           </div>
         )}
       </div>
-
-      {/* Format badges */}
-      {!preview && !error && (
-        <div className="flex items-center justify-center gap-2 mt-4">
-          {['PDF', 'DOCX', 'DOC', 'TXT'].map(fmt => (
-            <span key={fmt} className="px-2.5 py-1 bg-white border border-gray-200 rounded-full text-xs font-semibold text-gray-500 shadow-sm">
-              {fmt}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

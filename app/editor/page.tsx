@@ -1,15 +1,24 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { APIResponse } from '@/lib/types';
 import { loadResume, saveResume } from '@/lib/store';
 import { mapToResumeData } from '@/lib/mapper';
 import ResumeEditor from '@/components/editor/ResumeEditor';
 import ResumePreview from '@/components/formats/ResumePreview';
-import { FiCheckCircle, FiSave, FiUpload, FiLayout, FiEye, FiEdit3, FiPrinter, FiDownload } from 'react-icons/fi';
-import { OfficialSeal } from '@/components/landing/GovNav';
+import {
+  IconCheckCircle,
+  IconSave,
+  IconUpload,
+  IconSplit,
+  IconPreview,
+  IconEdit,
+  IconPrint,
+  IconDownload,
+} from '@/components/ui/icons';
+import AppHeader from '@/components/app/AppHeader';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import StateDownloadDialog from '@/components/formats/StateDownloadDialog';
 
 type StateFormat = 'ohio' | 'pennsylvania' | 'oceanblue' | 'georgia';
@@ -92,97 +101,64 @@ export default function EditorPage() {
   const effectivePanel: PanelMode = isMobile && panel === 'split' ? 'editor' : panel;
 
   return (
-    <div className="h-screen flex flex-col bg-gov-gray-50 overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-tc-desk">
 
       {/* ── Header ── */}
-      <header className="flex-shrink-0 bg-gov-navy border-b border-white/10 z-30">
-        <div className="h-0.5 bg-gradient-to-r from-transparent via-gov-gold to-transparent" />
-        <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5">
-
-          {/* Brand */}
-          <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <OfficialSeal size={28} />
-            <div className="hidden sm:block">
-              <p className="text-white text-xs font-bold leading-tight group-hover:text-blue-200 transition-colors">ResumeKit</p>
-              <p className="text-blue-400/60 text-[9px] tracking-widest uppercase">State Format Tool</p>
-            </div>
-          </Link>
-
-          <div className="h-6 w-px bg-white/10 flex-shrink-0" />
-
-          {/* Panel mode — desktop only (mobile uses bottom tabs) */}
-          <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded overflow-hidden">
-            {([
-              { id: 'editor',  label: 'Edit',    Icon: FiEdit3  },
-              { id: 'split',   label: 'Split',   Icon: FiLayout },
-              { id: 'preview', label: 'Preview', Icon: FiEye    },
-            ] as { id: PanelMode; label: string; Icon: React.FC<{ size?: number }> }[]).map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                onClick={() => setPanel(id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-all ${
-                  panel === id ? 'bg-gov-blue text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Icon size={12} />
-                <span className="hidden lg:inline">{label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Print */}
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white rounded text-xs font-semibold transition-all"
-          >
-            <FiPrinter size={13} />
-            <span className="hidden sm:inline">Print</span>
-          </button>
-
-          {/* Export */}
-          <button
-            onClick={() => setDlgOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gov-blue hover:bg-gov-blue-mid text-white rounded text-xs font-bold transition-all shadow-md shadow-blue-900/30"
-          >
-            <FiDownload size={13} />
-            <span className="hidden sm:inline">Export</span>
-          </button>
-
-          <div className="flex-1" />
-
-          {/* Save status */}
-          <div className={`flex items-center gap-1 text-xs font-medium flex-shrink-0 transition-all ${saved ? 'text-gov-green' : 'text-slate-500'}`}>
-            {saved
-              ? <><FiCheckCircle size={13} /><span className="hidden sm:inline ml-1">Saved</span></>
-              : <><FiSave size={13} className="animate-pulse" /><span className="hidden sm:inline ml-1">Saving…</span></>}
-          </div>
-
-          {/* Candidate name */}
-          {candidateName && (
-            <div className="hidden lg:flex items-center px-3 py-1 bg-white/5 border border-white/10 rounded text-xs text-slate-300 max-w-[160px]">
-              <span className="truncate">{candidateName}</span>
-            </div>
-          )}
-
-          {/* New upload */}
-          <Link
-            href="/upload"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 border border-white/10 hover:border-white/20 text-slate-300 hover:text-white rounded text-xs font-medium transition-all flex-shrink-0"
-          >
-            <FiUpload size={13} />
-            <span className="hidden md:inline">New Upload</span>
-          </Link>
+      <AppHeader step="Review" dense>
+        {/* Panel mode — desktop only (mobile uses bottom tabs) */}
+        <div className="hidden items-center gap-0.5 rounded-lg bg-tc-desk p-1 md:flex">
+          {([
+            { id: 'editor',  label: 'Edit',    Icon: IconEdit  },
+            { id: 'split',   label: 'Split',   Icon: IconSplit },
+            { id: 'preview', label: 'Preview', Icon: IconPreview    },
+          ] as { id: PanelMode; label: string; Icon: React.FC<{ size?: number }> }[]).map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setPanel(id)}
+              aria-pressed={panel === id}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+                panel === id
+                  ? 'bg-white text-tc-ink shadow-[0_1px_2px_rgba(11,27,51,0.10)]'
+                  : 'text-tc-muted hover:text-tc-ink'
+              }`}
+            >
+              <Icon size={12} />
+              <span className="hidden lg:inline">{label}</span>
+            </button>
+          ))}
         </div>
-      </header>
 
-      {/* ── Breadcrumb — desktop only ── */}
-      <div className="hidden md:flex flex-shrink-0 px-4 py-1.5 bg-white border-b border-gov-gray-200 items-center gap-2 text-xs text-gov-gray-400">
-        <Link href="/" className="hover:text-gov-blue transition-colors">Home</Link>
-        <span>›</span>
-        <Link href="/upload" className="hover:text-gov-blue transition-colors">Upload</Link>
-        <span>›</span>
-        <span className="text-gov-gray-700 font-medium">Edit Document</span>
-      </div>
+        {/* Save status */}
+        <span
+          className={`flex shrink-0 items-center gap-1.5 px-1 text-[12.5px] font-medium ${
+            saved ? 'text-tc-mint' : 'text-tc-faint'
+          }`}
+        >
+          {saved ? <IconCheckCircle size={13} /> : <IconSave size={13} className="animate-pulse" />}
+          <span className="hidden sm:inline">{saved ? 'Saved' : 'Saving…'}</span>
+        </span>
+
+        {candidateName && (
+          <span className="hidden max-w-[160px] items-center rounded-md bg-tc-desk px-2.5 py-1 text-[12.5px] text-tc-muted lg:flex">
+            <span className="truncate">{candidateName}</span>
+          </span>
+        )}
+
+        <Button variant="secondary" size="sm" onClick={() => window.print()}>
+          <IconPrint size={13} />
+          <span className="hidden sm:inline">Print</span>
+        </Button>
+
+        <Button size="sm" onClick={() => setDlgOpen(true)}>
+          <IconDownload size={13} />
+          <span className="hidden sm:inline">Export</span>
+        </Button>
+
+        <ButtonLink href="/upload" variant="ghost" size="sm">
+          <IconUpload size={13} />
+          <span className="hidden md:inline">New upload</span>
+        </ButtonLink>
+      </AppHeader>
 
       {/* ── Main panels ── */}
       <div ref={containerRef} className="flex-1 flex overflow-hidden">
@@ -250,7 +226,7 @@ export default function EditorPage() {
             effectivePanel !== 'preview' ? 'text-gov-blue' : 'text-gov-gray-400'
           }`}
         >
-          <FiEdit3 size={18} />
+          <IconEdit size={18} />
           <span>Edit</span>
         </button>
         <button
@@ -259,7 +235,7 @@ export default function EditorPage() {
             effectivePanel === 'preview' ? 'text-gov-blue' : 'text-gov-gray-400'
           }`}
         >
-          <FiEye size={18} />
+          <IconPreview size={18} />
           <span>Preview</span>
         </button>
       </div>

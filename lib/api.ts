@@ -1,29 +1,27 @@
 import type { APIResponse } from './types';
 
-const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000').replace(/\/$/, '');
-
+/**
+ * The extraction engine is never called from the browser. Requests go to this
+ * app's own /api/extract route, which verifies the session and forwards the
+ * file — so the engine's URL and any key it needs stay server-side.
+ */
 export async function extractResume(file: File): Promise<APIResponse> {
   const form = new FormData();
   form.append('file', file);
 
-  const res = await fetch(`${BASE_URL}/extract`, {
+  const res = await fetch('/api/extract', {
     method: 'POST',
     body: form,
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(err.detail ?? `HTTP ${res.status}`);
+    if (res.status === 401) {
+      window.location.href = `/signin?next=${encodeURIComponent('/upload')}`;
+      throw new Error('Your session has expired. Taking you to sign in…');
+    }
+    const err = (await res.json().catch(() => ({}))) as { detail?: string };
+    throw new Error(err.detail ?? `The upload failed (HTTP ${res.status}).`);
   }
 
   return res.json() as Promise<APIResponse>;
-}
-
-export async function healthCheck(): Promise<boolean> {
-  try {
-    const res = await fetch(`${BASE_URL}/health`, { method: 'GET' });
-    return res.ok;
-  } catch {
-    return false;
-  }
 }

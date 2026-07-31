@@ -48,7 +48,7 @@ const AuditBanner: React.FC<{ data: APIResponse }> = ({ data }) => {
       <button onClick={() => setOpen(o => !o)} className="flex w-full items-center gap-2 text-left font-bold">
         <span>⚠</span>
         <span className="flex-1">
-          Extraction check{coverage !== undefined ? ` — ${coverage}% of the resume captured` : ''}
+          Extraction check{coverage !== undefined ? `: ${coverage}% of the resume captured` : ''}
           {warnings.length > 0 ? ` · ${warnings.length} warning${warnings.length > 1 ? 's' : ''}` : ''}
         </span>
         <span className="font-normal underline">{open ? 'hide' : 'details'}</span>

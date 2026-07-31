@@ -1,141 +1,145 @@
 @import "tailwindcss";
 
-/* ── Government Design System Tokens ────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   TRUECOPY — the light table
+   The page is a proofing desk: cool white paper, hairline rules, and a
+   measuring edge. Colour is reserved for state — never for decoration.
+   ══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
-  --font-sans: var(--font-archivo), system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-sans: var(--font-instrument), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
-  /* Drafting-room landing palette */
-  --color-ink:        #11253c;
-  --color-ink-deep:   #0a1a2e;
-  --color-paper:      #f5f2ea;
-  --color-paper-deep: #ebe6d9;
-  --color-process:    #0f6fb4;
-  --color-signal:     #e1591f;
+  /* Ink */
+  --color-tc-ink:     #0B1B33;
+  --color-tc-ink-2:   #14304F;
+  --color-tc-muted:   #5C6E88;
+  --color-tc-faint:   #8FA0B8;
 
-  /* Government primary palette */
-  --color-gov-navy:       #0d2240;
-  --color-gov-blue:       #005ea2;
-  --color-gov-blue-mid:   #1a5eb5;
-  --color-gov-blue-light: #d9e8f6;
-  --color-gov-blue-bg:    #f0f6fb;
+  /* Surface */
+  --color-tc-paper:   #FFFFFF;
+  --color-tc-desk:    #F4F7FC;
+  --color-tc-desk-2:  #EAF0F8;
+  --color-tc-line:    #E1E8F2;
+  --color-tc-line-2:  #CFDAE9;
 
-  /* Government accent palette */
-  --color-gov-gold:       #b88400;
-  --color-gov-gold-light: #fef3d0;
-  --color-gov-green:      #1e7a50;
-  --color-gov-green-light:#d7f0e4;
-  --color-gov-red:        #c9190b;
+  /* Signal */
+  --color-tc-azure:   #1F6FEB;
+  --color-tc-azure-d: #1557C0;
+  --color-tc-cyan:    #1AA0D8;
+  --color-tc-mint:    #0F9E72;
+  --color-tc-amber:   #C97A06;
+  --color-tc-rose:    #CE3A48;
 
-  /* Government neutrals */
-  --color-gov-gray-50:    #f5f7fa;
-  --color-gov-gray-100:   #eaeef3;
-  --color-gov-gray-200:   #d0d5dd;
-  --color-gov-gray-400:   #8795a8;
-  --color-gov-gray-600:   #4a5568;
-  --color-gov-gray-900:   #1a1a2e;
+  /* ── Application chrome (upload + editor) ─────────────────────────────── */
+  --color-gov-navy:       #0B1B33;
+  --color-gov-blue:       #1F6FEB;
+  --color-gov-blue-mid:   #1557C0;
+  --color-gov-blue-light: #DCE9FB;
+  --color-gov-blue-bg:    #F1F6FE;
 
-  /* Ohio format */
-  --color-ocean-blue: #005ea2;
-  --color-ocean-dark: #0d2240;
+  --color-gov-gold:       #C97A06;
+  --color-gov-gold-light: #FDF3DE;
+  --color-gov-green:      #0F9E72;
+  --color-gov-green-light:#DCF5EC;
+  --color-gov-red:        #CE3A48;
 
-  /* Pennsylvania format */
-  --color-pa-dark: #002868;
-  --color-pa-gold: #b88400;
+  --color-gov-gray-50:    #F4F7FC;
+  --color-gov-gray-100:   #EAF0F8;
+  --color-gov-gray-200:   #E1E8F2;
+  --color-gov-gray-400:   #8FA0B8;
+  --color-gov-gray-600:   #5C6E88;
+  --color-gov-gray-900:   #0B1B33;
 
-  /* Georgia format */
-  --color-ga-red:   #BA0C2F;
-  --color-ga-dark:  #1a1a1a;
-  --color-ga-cream: #FFF7E6;
-
-  /* Animations */
-  --animate-fade-in:    fade-in 0.25s ease-out;
-  --animate-slide-up:   slide-up 0.35s ease-out;
-  --animate-shimmer:    shimmer 2s linear infinite;
+  /* Output template accents */
+  --color-ocean-blue: #1F6FEB;
+  --color-ocean-dark: #0B1B33;
+  --color-pa-dark:    #002868;
+  --color-pa-gold:    #B88400;
+  --color-ga-red:     #BA0C2F;
+  --color-ga-dark:    #1A1A1A;
+  --color-ga-cream:   #FFF7E6;
 }
 
-/* ── Keyframes ────────────────────────────────────────────────────────────── */
-@keyframes fade-in {
-  from { opacity: 0; transform: scale(0.98); }
-  to   { opacity: 1; transform: scale(1); }
-}
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-@keyframes pulse-ring {
-  0%   { transform: scale(0.95); opacity: 1; }
-  100% { transform: scale(1.3); opacity: 0; }
+/* ══════════════════════════════════════════════════════════════════════════
+   Base
+   ══════════════════════════════════════════════════════════════════════════ */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* ── Utility classes ──────────────────────────────────────────────────────── */
-.animate-fade-in     { animation: fade-in 0.25s ease-out; }
-.animate-slide-up    { animation: slide-up 0.35s ease-out; }
-.pulse-ring::after   {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  animation: pulse-ring 1.4s ease-out infinite;
-  border: 2px solid #005ea2;
+::selection { background: #CFE3FF; color: #0B1B33; }
+
+:focus-visible {
+  outline: 2px solid #1F6FEB;
+  outline-offset: 2px;
+  border-radius: 5px;
 }
 
-/* Government texture — subtle dot grid */
-.gov-dot-grid {
-  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
+/* ══════════════════════════════════════════════════════════════════════════
+   Paper
+   ══════════════════════════════════════════════════════════════════════════ */
+.tc-card {
+  background: #fff;
+  border: 1px solid var(--color-tc-line);
+  border-radius: 14px;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.3s ease;
+}
+.tc-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-tc-line-2);
+  box-shadow:
+    0 1px 1px rgba(11, 27, 51, 0.04),
+    0 18px 34px -18px rgba(11, 27, 51, 0.20);
 }
 
-/* Official line pattern for headers */
-.gov-line-pattern {
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 8px,
-    rgba(255,255,255,0.02) 8px,
-    rgba(255,255,255,0.02) 9px
-  );
+/* ══════════════════════════════════════════════════════════════════════════
+   Motion
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes slide-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.animate-slide-up { animation: slide-up 0.35s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .tc-card-hover:hover { transform: none; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
-/* Section rule — official divider style */
-.gov-rule {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.gov-rule::before,
-.gov-rule::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, #d0d5dd, transparent);
-}
-
-/* Official form field */
+/* ══════════════════════════════════════════════════════════════════════════
+   Application chrome (upload + editor pages)
+   ══════════════════════════════════════════════════════════════════════════ */
 .gov-input {
   width: 100%;
-  border: 1.5px solid #d0d5dd;
-  border-radius: 4px;
-  padding: 8px 12px;
+  border: 1px solid var(--color-tc-line-2);
+  border-radius: 8px;
+  padding: 9px 12px;
   font-size: 0.875rem;
-  color: #1a1a2e;
+  color: #0B1B33;
   background: #fff;
   transition: border-color 0.15s, box-shadow 0.15s;
   outline: none;
 }
 .gov-input:focus {
-  border-color: #005ea2;
-  box-shadow: 0 0 0 3px rgba(0, 94, 162, 0.15);
+  border-color: #1F6FEB;
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.14);
 }
 
-/* Smooth anchor scrolling for section links */
-html { scroll-behavior: smooth; }
+.gov-rule { display: flex; align-items: center; gap: 16px; }
+.gov-rule::before,
+.gov-rule::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--color-tc-line-2), transparent);
+}
 
-/* Print */
 @media print {
   nav, header, aside, .no-print { display: none !important; }
   #resume-preview {
@@ -146,102 +150,12 @@ html { scroll-behavior: smooth; }
   }
 }
 
-/* ── Drafting-room landing system ─────────────────────────────────────────── */
-:root {
-  --ink: #11253c;
-  --ink-deep: #0a1a2e;
-  --paper: #f5f2ea;
-  --paper-deep: #ebe6d9;
-  --process: #0f6fb4;
-  --signal: #e1591f;
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #C6D3E4;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
 }
-
-/* Graph-paper texture on warm paper */
-.paper-grid {
-  background-image:
-    linear-gradient(rgba(17, 37, 60, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(17, 37, 60, 0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-/* Blueprint texture on ink navy */
-.blueprint-grid {
-  background-image:
-    linear-gradient(rgba(140, 190, 235, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(140, 190, 235, 0.09) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-/* Flat-extrusion shadows — the "modular block" look */
-.hard-shadow    { box-shadow: 7px 7px 0 0 var(--ink); }
-.hard-shadow-sm { box-shadow: 4px 4px 0 0 var(--ink); }
-.hard-shadow-signal { box-shadow: 6px 6px 0 0 var(--signal); }
-.lift-block { transition: transform 0.18s ease, box-shadow 0.18s ease; }
-.lift-block:hover { transform: translate(-3px, -3px); box-shadow: 10px 10px 0 0 var(--ink); }
-
-/* Conveyor line — flowing dashes via background-position */
-@keyframes convey { to { background-position-x: 22px; } }
-.conveyor {
-  height: 2px;
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(125, 199, 255, 0.85) 0 10px,
-    transparent 10px 22px
-  );
-  animation: convey 0.8s linear infinite;
-}
-
-/* Document chip traveling down the line */
-@keyframes chip-travel {
-  0%   { left: 0%; opacity: 0; }
-  5%   { opacity: 1; }
-  95%  { opacity: 1; }
-  100% { left: calc(100% - 40px); opacity: 0; }
-}
-.chip-travel { animation: chip-travel 7s linear infinite; }
-
-/* Station pulse — per-station color via --pulse-from/--pulse-to inline vars */
-@keyframes station-pulse {
-  0%   { box-shadow: 0 0 0 0 var(--pulse-from, rgba(225, 89, 31, 0.5)); }
-  70%  { box-shadow: 0 0 0 12px var(--pulse-to, rgba(225, 89, 31, 0)); }
-  100% { box-shadow: 0 0 0 0 var(--pulse-to, rgba(225, 89, 31, 0)); }
-}
-.station-pulse { animation: station-pulse 2.4s ease-out infinite; }
-
-/* Gentle vertical drift for annotation chips */
-@keyframes drift-y {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-7px); }
-}
-.drift-y { animation: drift-y 5s ease-in-out infinite; }
-
-/* Dashed leader line for annotations */
-.leader-line {
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--signal) 0 6px,
-    transparent 6px 12px
-  );
-  height: 2px;
-}
-
-/* Corner registration ticks — technical-drawing frame */
-.tick-frame { position: relative; }
-.tick-frame::before,
-.tick-frame::after {
-  content: '';
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border-color: var(--ink);
-  border-style: solid;
-  opacity: 0.55;
-}
-.tick-frame::before { top: -9px; left: -9px; border-width: 2px 0 0 2px; }
-.tick-frame::after  { bottom: -9px; right: -9px; border-width: 0 2px 2px 0; }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #f5f7fa; }
-::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #8795a8; }
+::-webkit-scrollbar-thumb:hover { background: #A6B8D0; background-clip: content-box; }
