@@ -7,7 +7,7 @@
  * FAQ markup and the honest thing to do.
  */
 
-const ORIGIN = process.env.NEXT_APP_ORIGIN ?? 'https://truecopy.oceanbluesolutions.com';
+const ORIGIN = process.env.NEXT_APP_ORIGIN ?? 'https://hire.oceanbluecorp.com';
 
 const FAQ = [
   {

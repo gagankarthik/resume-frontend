@@ -10,7 +10,7 @@
 # None of them use the NEXT_PUBLIC_ prefix, so none is compiled into the
 # browser bundle:
 #
-#   NEXT_APP_ORIGIN            https://<your-domain>
+#   NEXT_APP_ORIGIN            https://hire.oceanbluecorp.com
 #   NEXT_AWS_REGION            us-east-2
 #   NEXT_EXTRACTION_API_URL    https://<function-url>.lambda-url.us-east-2.on.aws
 #   NEXT_COGNITO_USER_POOL_ID  us-east-2_xxxxxxxxx

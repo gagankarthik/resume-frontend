@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const ORIGIN = process.env.NEXT_APP_ORIGIN ?? 'https://truecopy.oceanbluesolutions.com';
+const ORIGIN = process.env.NEXT_APP_ORIGIN ?? 'https://hire.oceanbluecorp.com';
 
 /** Only the publicly indexable pages. The signed-in app is excluded in robots.ts. */
 const PAGES: { path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'] }[] = [

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const ORIGIN = process.env.NEXT_APP_ORIGIN ?? 'https://truecopy.oceanbluesolutions.com';
+const ORIGIN = process.env.NEXT_APP_ORIGIN ?? 'https://hire.oceanbluecorp.com';
 
 export default function robots(): MetadataRoute.Robots {
   return {
