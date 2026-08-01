@@ -109,7 +109,6 @@ export default function EditorPage() {
   }
 
   const resumeData = mapToResumeData(apiData);
-  const candidateName = apiData.personal_information?.full_name ?? '';
 
   return (
     <div className="min-h-screen bg-white">
@@ -145,7 +144,9 @@ export default function EditorPage() {
             data={apiData}
             onChange={handleChange}
             onExport={() => setDlgOpen(true)}
-            candidateName={candidateName}
+            // The file it came from, or who it belongs to when the extraction
+            // did not report a filename.
+            label={apiData._metadata?.filename || apiData.personal_information?.full_name || ''}
             saved={saved}
             // Beside the preview this pane scrolls on its own, so the tabs pin
             // to the pane rather than clearing the site header.

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { APIResponse } from '@/lib/types';
 import PersonalInfoEditor from './sections/PersonalInfoEditor';
 import SummaryEditor from './sections/SummaryEditor';
@@ -27,8 +27,11 @@ interface Props {
   onChange: (data: APIResponse) => void;
   /** Offered at the end of the run. */
   onExport: () => void;
-  /** Whose resume this is, shown beside the tabs. */
-  candidateName?: string;
+  /**
+   * What this record is, shown at the end of the tab row: the file it came
+   * from, or the candidate's name when the extraction didn't report one.
+   */
+  label?: string;
   /** Autosave state, shown beside the tabs. */
   saved?: boolean;
   /**
@@ -123,14 +126,42 @@ export default function ResumeEditor({
   data,
   onChange,
   onExport,
-  candidateName,
+  label,
   saved = true,
   stickyUnderHeader = true,
 }: Props) {
   const [step, setStep] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
+  const strip = useRef<HTMLOListElement>(null);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [overflow, setOverflow] = useState({ left: false, right: false });
   const section = SECTIONS[step];
   const last = step === SECTIONS.length - 1;
+
+  // Beside the preview the pane is narrow and the row of tabs runs off the
+  // end. Rather than let them disappear silently, keep the selected tab in
+  // view and fade the edge that still has tabs behind it.
+  const measure = useCallback(() => {
+    const el = strip.current;
+    if (!el) return;
+    setOverflow({
+      left: el.scrollLeft > 2,
+      right: el.scrollLeft + el.clientWidth < el.scrollWidth - 2,
+    });
+  }, []);
+
+  useEffect(() => {
+    measure();
+    const el = strip.current;
+    if (!el) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [measure]);
+
+  useEffect(() => {
+    tabs.current[step]?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [step]);
 
   const go = (next: number) => {
     setStep(next);
@@ -162,10 +193,12 @@ export default function ResumeEditor({
           stickyUnderHeader ? 'top-16' : 'top-0'
         }`}
       >
-        <div className="mx-auto flex max-w-[880px] items-center gap-4 px-4 sm:px-6">
-          <nav aria-label="Resume sections" className="-mb-px min-w-0 flex-1">
+        <div className="mx-auto flex max-w-[880px] items-center gap-3 px-4 sm:px-6">
+          <nav aria-label="Resume sections" className="relative -mb-px min-w-0 flex-1">
             <ol
+              ref={strip}
               role="tablist"
+              onScroll={measure}
               className="flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             >
               {SECTIONS.map((s, i) => {
@@ -174,6 +207,9 @@ export default function ResumeEditor({
                 return (
                   <li key={s.id} className="shrink-0">
                     <button
+                      ref={el => {
+                        tabs.current[i] = el;
+                      }}
                       role="tab"
                       aria-selected={current}
                       onClick={() => go(i)}
@@ -199,10 +235,34 @@ export default function ResumeEditor({
                 );
               })}
             </ol>
+
+            {/* There are more tabs that way. */}
+            {overflow.left && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent"
+              />
+            )}
+            {overflow.right && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent"
+              />
+            )}
           </nav>
 
-          <span className="hidden shrink-0 items-center gap-2 text-[12.5px] text-tc-faint md:flex">
-            {candidateName && <span className="max-w-[180px] truncate">{candidateName}</span>}
+          <span className="hidden shrink-0 items-center gap-2 text-[12.5px] text-tc-faint lg:flex">
+            {label && (
+              <span
+                // A filename reads as data, a person's name reads as prose.
+                className={`max-w-[140px] truncate ${
+                  label.includes('.') ? 'font-mono text-[11.5px]' : ''
+                }`}
+                title={label}
+              >
+                {label}
+              </span>
+            )}
             <span className={saved ? 'text-tc-faint' : 'text-tc-azure'}>
               {saved ? 'Saved' : 'Saving…'}
             </span>

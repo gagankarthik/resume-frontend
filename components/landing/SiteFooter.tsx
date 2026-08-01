@@ -14,6 +14,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
     links: [
       { href: '#how', label: 'How it works' },
       { href: '#templates', label: 'Templates' },
+      { href: '#match', label: 'Matching' },
       { href: '#controls', label: 'Controls' },
       { href: '#faq', label: 'FAQ' },
     ],
@@ -23,6 +24,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
     links: [
       { href: '/upload', label: 'Upload a resume' },
       { href: '/editor', label: 'Open the editor' },
+      { href: '/match', label: 'Match to a job' },
       { href: '/signin', label: 'Sign in' },
     ],
   },

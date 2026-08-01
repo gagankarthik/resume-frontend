@@ -25,6 +25,10 @@ const QA = [
     q: 'Can one resume go to several states?',
     a: 'Yes. Extract once, then export to any template without re-uploading.',
   },
+  {
+    q: 'How does matching pick the candidates?',
+    a: 'The posting is read once for the role, requirements, and skills. Your resumes are shortlisted against it, then read again to score each one and say which skills matched and which are missing. Only resumes uploaded from your account are searched.',
+  },
 ];
 
 function Item({ q, a, defaultOpen }: { q: string; a: string; defaultOpen: boolean }) {

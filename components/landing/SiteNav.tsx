@@ -9,6 +9,7 @@ import UserMenu from '@/components/auth/UserMenu';
 const LINKS = [
   { href: '#how', label: 'How it works' },
   { href: '#templates', label: 'Templates' },
+  { href: '#match', label: 'Matching' },
   { href: '#controls', label: 'Controls' },
   { href: '#faq', label: 'FAQ' },
 ];

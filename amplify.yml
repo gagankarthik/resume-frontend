@@ -10,15 +10,20 @@
 # None of them use the NEXT_PUBLIC_ prefix, so none is compiled into the
 # browser bundle:
 #
-#   NEXT_APP_ORIGIN            https://hire.oceanbluecorp.com
-#   NEXT_AWS_REGION            us-east-2
-#   NEXT_EXTRACTION_API_URL    https://<function-url>.lambda-url.us-east-2.on.aws
-#   NEXT_COGNITO_USER_POOL_ID  us-east-2_xxxxxxxxx
-#   NEXT_COGNITO_CLIENT_ID     xxxxxxxxxxxxxxxxxxxxxxxxxx
-#   NEXT_COGNITO_DOMAIN        https://<pool>.auth.<region>.amazoncognito.com
-#   NEXT_COGNITO_SCOPES        openid email profile
+#   NEXT_APP_ORIGIN              https://hire.oceanbluecorp.com
+#   NEXT_AWS_REGION              us-east-2
+#   NEXT_EXTRACTION_API_URL      https://<function-url>.lambda-url.us-east-2.on.aws
+#   NEXT_COGNITO_USER_POOL_ID    us-east-2_xxxxxxxxx
+#   NEXT_COGNITO_CLIENT_ID       xxxxxxxxxxxxxxxxxxxxxxxxxx
+#   NEXT_COGNITO_DOMAIN          https://<pool>.auth.<region>.amazoncognito.com
+#   NEXT_COGNITO_SCOPES          openid email profile
+#   NEXT_RESUME_MATCH_API_URL    https://<function-url>.lambda-url.us-east-2.on.aws
+#   NEXT_RESUME_MATCH_API_KEY    <shared secret the matching engine expects>
 #
-# Leave the Cognito values unset to run the app open (no sign-in required).
+# Leaving the Cognito values unset runs the app open — no sign-in, and every
+# gate passes. That is deliberate for local development, and almost never what
+# a hosted deployment wants: the preBuild check below prints what is missing,
+# and the app shows a notice on its own pages while it is in that state.
 
 version: 1
 frontend:
@@ -26,6 +31,9 @@ frontend:
     preBuild:
       commands:
         - npm ci --prefer-offline --no-audit --fund=false
+        # Says which runtime variables the console is actually providing, so a
+        # missing one shows up here instead of as a silent behaviour change.
+        - node scripts/check-env.mjs
     build:
       commands:
         # Amplify exposes console variables to the build shell but does not
