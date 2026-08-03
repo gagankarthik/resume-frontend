@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { TruecopyLogo } from '@/components/brand/Logo';
 import { ButtonLink } from '@/components/ui/Button';
 import { IconArrowRight } from '@/components/ui/icons';
+import { TruecopyLogo } from '../brand/Logo';
 
 const YEAR = new Date().getFullYear();
 
@@ -104,7 +104,7 @@ export default function SiteFooter() {
       <div className="border-t border-tc-line">
         <div className="mx-auto grid max-w-[1140px] gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,1fr))]">
           <div>
-            <TruecopyLogo />
+             <TruecopyLogo />
             <p className="mt-4 max-w-[24ch] text-[13.5px] leading-relaxed text-tc-muted">
               Resume conversion for state workforce submittals. Read the file, check the
               copy, set it to the template.

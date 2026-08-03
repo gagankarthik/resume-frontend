@@ -61,7 +61,7 @@ export default function Hero() {
             {...rise(0.08)}
             className="mx-auto mt-6 max-w-xl text-[17px] leading-[1.6] text-tc-muted"
           >
-            Upload a resume. Truecopy reads every section word for word, checks it against
+            Upload a resume. Blue-IQ Hire reads every section word for word, checks it against
             the original, and writes the agency&rsquo;s template.
           </motion.p>
 

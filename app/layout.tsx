@@ -27,12 +27,12 @@ const ORIGIN =
 export const metadata: Metadata = {
   metadataBase: new URL(ORIGIN),
   title: {
-    default: 'Truecopy: resumes set to the format the state requires',
-    template: '%s · Truecopy',
+    default: 'Blue-IQ Hire: resumes set to the format the state requires',
+    template: '%s · Blue-IQ Hire',
   },
   description:
-    'Upload a resume in PDF, Word, or text. Truecopy pulls out every section word for word, checks the result against the original, and writes a submission-ready document in the Ohio, Pennsylvania, Georgia, or Oceanblue template.',
-  applicationName: 'Truecopy',
+    'Upload a resume in PDF, Word, or text. Blue-IQ Hire pulls out every section word for word, checks the result against the original, and writes a submission-ready document in the Ohio, Pennsylvania, Georgia, or Oceanblue template.',
+  applicationName: 'Blue-IQ Hire',
   keywords: [
     'resume formatting',
     'state resume template',
@@ -41,10 +41,10 @@ export const metadata: Metadata = {
     'DOCX resume converter',
   ],
   openGraph: {
-    title: 'Truecopy: resumes set to the format the state requires',
+    title: 'Blue-IQ Hire: resumes set to the format the state requires',
     description:
       'Word-for-word extraction, a coverage audit against the source, and four submission-ready templates.',
-    siteName: 'Truecopy',
+    siteName: 'Blue-IQ Hire',
     type: 'website',
   },
 };

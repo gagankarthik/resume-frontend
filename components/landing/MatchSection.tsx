@@ -62,7 +62,7 @@ export default function MatchSection() {
           {/* What it does */}
           <div>
             <p className="text-[16px] leading-[1.7] text-tc-muted">
-              You already put resumes through Truecopy to format them. Add them to your set, paste
+              You already put resumes through Blue-IQ Hire to format them. Add them to your set, paste
               the posting, and every one comes back scored against it — no keyword filters to tune,
               no spreadsheet to keep.
             </p>

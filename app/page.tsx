@@ -10,9 +10,9 @@ import SiteFooter from '@/components/landing/SiteFooter';
 import StructuredData from '@/components/seo/StructuredData';
 
 export const metadata: Metadata = {
-  title: 'Truecopy: resumes set to the format the state requires',
+  title: 'Blue-IQ Hire: resumes set to the format the state requires',
   description:
-    'Upload a resume in PDF, Word, or text. Truecopy extracts every section word for word, checks it against the original, and writes a submission-ready Word document in the Ohio, Pennsylvania, Georgia, or Oceanblue template. Paste a job description to rank your resumes against it, with the matched and missing skills behind every score.',
+    'Upload a resume in PDF, Word, or text. Blue-IQ Hire extracts every section word for word, checks it against the original, and writes a submission-ready Word document in the Ohio, Pennsylvania, Georgia, or Oceanblue template. Paste a job description to rank your resumes against it, with the matched and missing skills behind every score.',
   alternates: { canonical: '/' },
 };
 
