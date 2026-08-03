@@ -1,14 +1,27 @@
 # Amplify build spec.
 #
-# This app is not a static export: sign-in, the session check, and the upload
-# proxy are server routes, so Amplify must build it in SSR mode (WEB_COMPUTE).
-# That happens automatically for a Next.js app with server output, but the
-# build needs the runtime environment variables present at build time as well,
-# because `next build` evaluates route handlers when collecting page data.
+# This app is not a static export: sign-in, the session check, the upload proxy
+# and the match routes are server routes, so Amplify builds it in SSR mode
+# (WEB_COMPUTE) and serves those handlers from a compute function.
+#
+# THE PART THAT IS EASY TO GET WRONG
+#
+# Amplify puts the console's environment variables in the *build* shell and
+# stops there. The compute function that serves traffic does not inherit them —
+# AWS withholds them deliberately, so that build-time secrets cannot leak into
+# a running server. A value can therefore be set correctly in the console,
+# appear in the build log, and still be `undefined` inside a route handler in
+# production. That is how this app shipped with no sign-in and with uploads
+# answering 503: nothing was wrong in the console, the values simply never
+# crossed into runtime.
+#
+# The documented way across is to write them into an env file that Next.js
+# loads, which the build phase below does:
+# https://docs.aws.amazon.com/amplify/latest/userguide/ssr-environment-variables.html
 #
 # Set these in the Amplify console (App settings > Environment variables).
-# None of them use the NEXT_PUBLIC_ prefix, so none is compiled into the
-# browser bundle:
+# None uses the NEXT_PUBLIC_ prefix, so none is compiled into the browser
+# bundle — but see the warning below about the deployment artifact:
 #
 #   NEXT_APP_ORIGIN              https://hire.oceanbluecorp.com
 #   NEXT_AWS_REGION              us-east-2
@@ -20,10 +33,16 @@
 #   NEXT_RESUME_MATCH_API_URL    https://<function-url>.lambda-url.us-east-2.on.aws
 #   NEXT_RESUME_MATCH_API_KEY    <shared secret the matching engine expects>
 #
+# Everything written to .env.production below lands in the deployment artifact,
+# which anyone with access to the Amplify app can read. That is the tradeoff
+# AWS names in the doc above, and it is acceptable for a rotatable shared key
+# like NEXT_RESUME_MATCH_API_KEY. Do not push IAM credentials through this
+# path — give the compute function an SSR role instead.
+#
 # Leaving the Cognito values unset runs the app open — no sign-in, and every
 # gate passes. That is deliberate for local development, and almost never what
-# a hosted deployment wants: the preBuild check below prints what is missing,
-# and the app shows a notice on its own pages while it is in that state.
+# a hosted deployment wants: the check below prints what is missing, and the
+# app shows a notice on its own pages while it is in that state.
 
 version: 1
 frontend:
@@ -31,14 +50,16 @@ frontend:
     preBuild:
       commands:
         - npm ci --prefer-offline --no-audit --fund=false
-        # Says which runtime variables the console is actually providing, so a
-        # missing one shows up here instead of as a silent behaviour change.
-        - node scripts/check-env.mjs
     build:
       commands:
-        # Amplify exposes console variables to the build shell but does not
-        # write them to a file. Next reads process.env directly, so nothing
-        # further is needed here.
+        # Hand the console variables to the runtime. Truncate first so a cached
+        # workspace cannot leave a stale value behind, and tolerate a no-match
+        # grep (which exits 1) so that a missing variable is reported in words
+        # by the check below rather than killing the build on a bare exit code.
+        - 'rm -f .env.production; env | grep -E "^NEXT_[A-Z0-9_]+=" >> .env.production || true'
+        # Reads the file that will actually ship rather than the build shell,
+        # so what it prints is what production will see.
+        - node scripts/check-env.mjs .env.production
         - npm run build
   artifacts:
     baseDirectory: .next
