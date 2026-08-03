@@ -32,8 +32,8 @@ const GROUPS = [
   },
   {
     name: 'Extraction engine',
-    consequence: 'uploads answer 503',
-    vars: ['NEXT_EXTRACTION_API_URL'],
+    consequence: 'uploads answer 503 — no ticket can be signed, so the engine refuses them',
+    vars: ['NEXT_EXTRACTION_API_URL', 'NEXT_EXTRACTION_SHARED_SECRET'],
   },
   {
     name: 'Matching engine',

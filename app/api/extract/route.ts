@@ -1,38 +1,34 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { COOKIE, authConfigured, extractionUrl } from '@/lib/auth/config';
-import { verifyIdToken } from '@/lib/auth/session';
+import { extractionUrl } from '@/lib/auth/config';
+import { apiSession } from '@/lib/auth/guard';
+import { TICKET_HEADER, mintUploadTicket } from '@/lib/extract/ticket';
+import { describeRejection } from '@/lib/files';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const MAX_BYTES = 20 * 1024 * 1024;
-
-const ALLOWED_TYPES = new Set([
-  'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
-  'text/plain',
-]);
-
-const ALLOWED_EXT = /\.(pdf|docx|doc|txt)$/i;
-
 /**
- * Proxy to the extraction engine.
+ * Proxy to the extraction engine. NOT the path the browser uses.
  *
- * Everything sensitive stays on this side of the wire: the engine's URL is a
- * server-only variable, the caller's session is verified against Cognito's
- * JWKS before a byte is forwarded, and the file is streamed through without
- * being written to disk.
+ * Amplify serves this route through CloudFront, which closes a response after
+ * 30 seconds. The extraction pipeline runs 30-90, so a real resume uploaded
+ * here returns 504 no matter what timeout this handler sets — that was the bug
+ * that sent uploads direct in the first place. The browser now calls
+ * /api/extract/ticket and posts to the engine itself; see lib/api.ts.
+ *
+ * This is kept for callers that are not a browser and not behind that ceiling
+ * (scripts, a local `next start`, small files), and because leaving a
+ * half-authenticated proxy in the tree is worse than keeping one that works.
+ * It authorises with the same signed ticket the direct path uses.
  */
 export async function POST(req: Request) {
-  if (authConfigured()) {
-    const token = (await cookies()).get(COOKIE.session)?.value;
-    const user = token ? await verifyIdToken(token) : null;
-    if (!user) {
-      return NextResponse.json({ detail: 'Sign in to upload a resume.' }, { status: 401 });
-    }
+  // Same gate as the ticket route, and it also yields the Cognito id the
+  // engine logs against the extraction.
+  const session = await apiSession();
+  if (!session.ok) {
+    return NextResponse.json({ detail: 'Sign in to upload a resume.' }, { status: 401 });
   }
+  const owner = session.owner;
 
   const engine = extractionUrl();
   if (!engine) {
@@ -50,25 +46,29 @@ export async function POST(req: Request) {
   if (!(file instanceof File)) {
     return NextResponse.json({ detail: 'Attach a resume file.' }, { status: 400 });
   }
-  if (file.size === 0) {
-    return NextResponse.json({ detail: 'That file is empty.' }, { status: 400 });
-  }
-  if (file.size > MAX_BYTES) {
-    return NextResponse.json({ detail: 'That file is over 20 MB.' }, { status: 413 });
-  }
-  if (!ALLOWED_TYPES.has(file.type) && !ALLOWED_EXT.test(file.name)) {
-    return NextResponse.json(
-      { detail: 'Use a PDF, DOCX, DOC, or TXT file.' },
-      { status: 415 },
-    );
+
+  // Same rules and the same wording the browser sees before it ever uploads —
+  // one table in lib/files.ts, so this cannot drift from the dropzone.
+  const problem = describeRejection(file);
+  if (problem) {
+    return NextResponse.json({ detail: problem.message }, { status: problem.status });
   }
 
   const outbound = new FormData();
   outbound.append('file', file, file.name);
 
+  // Was `x-api-key` from EXTRACTION_API_KEY: a variable no deployment set, that
+  // the engine never checked, and whose name lacked the NEXT_ prefix the build
+  // copies into the runtime. It authenticated nothing. The engine now requires
+  // the same signed ticket the browser path uses.
   const headers: Record<string, string> = {};
-  if (process.env.EXTRACTION_API_KEY) {
-    headers['x-api-key'] = process.env.EXTRACTION_API_KEY;
+  try {
+    headers[TICKET_HEADER] = await mintUploadTicket(owner);
+  } catch {
+    return NextResponse.json(
+      { detail: 'Uploads are not available: the extraction service is not configured.' },
+      { status: 503 },
+    );
   }
 
   try {

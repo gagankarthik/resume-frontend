@@ -47,9 +47,27 @@ export function authConfigured(): boolean {
   );
 }
 
-/** The extraction engine, called only from /api/extract. */
+/**
+ * The extraction engine.
+ *
+ * The browser is handed this URL by /api/extract/ticket once it has proved a
+ * session, because the upload goes straight from the page to the engine — the
+ * pipeline runs 30-90s and Amplify's CloudFront cuts any proxied response off
+ * at 30s. So this is no longer a secret in the strict sense; it is withheld
+ * from anonymous callers, and the engine authorises every upload itself.
+ */
 export function extractionUrl(): string {
   return (process.env.NEXT_EXTRACTION_API_URL ?? '').replace(/\/$/, '');
+}
+
+/**
+ * Secret shared with the extraction engine, used to sign upload tickets.
+ *
+ * Server-only, and it must stay that way: anything holding this can mint
+ * tickets. It never leaves a route handler — only the signed ticket does.
+ */
+export function extractionSecret(): string | undefined {
+  return process.env.NEXT_EXTRACTION_SHARED_SECRET || undefined;
 }
 
 /** The matching engine, called only from /api/match/*. */

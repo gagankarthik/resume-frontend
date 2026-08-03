@@ -26,6 +26,7 @@
 #   NEXT_APP_ORIGIN              https://hire.oceanbluecorp.com
 #   NEXT_AWS_REGION              us-east-2
 #   NEXT_EXTRACTION_API_URL      https://<function-url>.lambda-url.us-east-2.on.aws
+#   NEXT_EXTRACTION_SHARED_SECRET  <must equal EXTRACTION_SHARED_SECRET on the engine>
 #   NEXT_COGNITO_USER_POOL_ID    us-east-2_xxxxxxxxx
 #   NEXT_COGNITO_CLIENT_ID       xxxxxxxxxxxxxxxxxxxxxxxxxx
 #   NEXT_COGNITO_DOMAIN          https://<pool>.auth.<region>.amazoncognito.com

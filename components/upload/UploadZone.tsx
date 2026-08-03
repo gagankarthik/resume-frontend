@@ -2,18 +2,18 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
+import {
+  DROPZONE_ACCEPT,
+  MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_MB,
+  acceptedShort,
+  describeRejection,
+} from '@/lib/files';
 
 interface Props {
   onUpload: (file: File) => void;
   disabled?: boolean;
 }
-
-const ACCEPTED = {
-  'application/pdf': ['.pdf'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-  'application/msword': ['.doc'],
-  'text/plain': ['.txt'],
-};
 
 const UploadZone: React.FC<Props> = ({ onUpload, disabled }) => {
   const [error, setError] = useState<string | null>(null);
@@ -22,18 +22,28 @@ const UploadZone: React.FC<Props> = ({ onUpload, disabled }) => {
   const onDrop = useCallback(
     (accepted: File[], rejected: FileRejection[]) => {
       setError(null);
+
       if (rejected.length > 0) {
-        const code = rejected[0].errors[0]?.code;
+        const { file, errors } = rejected[0];
+        // describeRejection names the file and says what to do about it;
+        // react-dropzone's own messages ("File type must be one of …") list
+        // raw MIME types at someone who picked the wrong file.
         setError(
-          code === 'file-too-large'
-            ? 'That file is over 20 MB. Try a smaller one.'
-            : code === 'file-invalid-type'
-              ? 'That file type is not supported. Use PDF, DOCX, DOC, or TXT.'
-              : (rejected[0].errors[0]?.message ?? 'That file could not be read.'),
+          describeRejection(file)?.message ??
+            errors[0]?.message ??
+            `“${file.name}” could not be read. Try another file.`,
         );
         return;
       }
+
       if (accepted.length > 0) {
+        // The dropzone matches on type and size; this catches the cases it has
+        // no rule for, such as a zero-byte file that is otherwise acceptable.
+        const problem = describeRejection(accepted[0]);
+        if (problem) {
+          setError(problem.message);
+          return;
+        }
         setPicked(accepted[0].name);
         onUpload(accepted[0]);
       }
@@ -43,9 +53,9 @@ const UploadZone: React.FC<Props> = ({ onUpload, disabled }) => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: ACCEPTED,
+    accept: DROPZONE_ACCEPT,
     maxFiles: 1,
-    maxSize: 20 * 1024 * 1024,
+    maxSize: MAX_UPLOAD_BYTES,
     disabled,
   });
 
@@ -117,7 +127,9 @@ const UploadZone: React.FC<Props> = ({ onUpload, disabled }) => {
             <p className="text-[15px] font-medium text-tc-ink">
               Drop a resume here, or <span className="text-tc-azure underline underline-offset-2">browse</span>
             </p>
-            <p className="mt-1.5 text-[13px] text-tc-muted">PDF, DOCX, DOC, or TXT, up to 20 MB</p>
+            <p className="mt-1.5 text-[13px] text-tc-muted">
+              {acceptedShort()} — up to {MAX_UPLOAD_MB} MB
+            </p>
           </div>
         )}
       </div>
