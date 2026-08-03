@@ -1,3 +1,4 @@
+import { extractResume } from '@/lib/api';
 import type { IngestResponse, MatchResponse } from './types';
 
 /**
@@ -37,20 +38,49 @@ export async function matchCandidates(
 /**
  * Add one file to the searchable set: parsed, projected, embedded, stored.
  *
- * The id is the filename, so the same file uploaded twice overwrites rather
- * than duplicates — and the engine skips it before parsing, which is what
- * makes re-running an interrupted batch cheap.
+ * Three steps rather than one upload, and the reason is the same clock that
+ * governs single-file extraction. Handing the raw file to /api/match/ingest
+ * makes the engine parse it — around a minute — behind a CloudFront timeout of
+ * thirty seconds, so it answers 504 for any real resume. Instead the file is
+ * extracted directly by the browser, where nothing cuts the connection, and
+ * only the parsed result is sent on to be embedded.
+ *
+ * The id is the filename, so the same file added twice overwrites rather than
+ * duplicates — and the existence check runs before the parse, which is what
+ * makes re-running an interrupted batch cheap rather than merely correct.
  */
 export async function ingestResume(
   file: File,
   signal?: AbortSignal,
 ): Promise<IngestResponse> {
-  const form = new FormData();
-  form.append('file', file, file.name);
+  const resumeId = file.name;
 
-  const res = await fetch(`/api/match/ingest?resume_id=${encodeURIComponent(file.name)}`, {
+  const already = await fetch(
+    `/api/match/resume?resume_id=${encodeURIComponent(resumeId)}`,
+    { signal },
+  );
+  if (already.ok) {
+    const { exists } = (await already.json()) as { exists?: boolean };
+    if (exists) {
+      return { success: true, resume_id: resumeId, dim: 0, stored: true, skipped: true };
+    }
+  } else if (already.status === 401) {
+    window.location.href = `/signin?next=${encodeURIComponent('/match')}`;
+    throw new Error('Your session has expired. Taking you to sign in…');
+  }
+  // Any other lookup failure falls through and re-adds the resume, which
+  // overwrites the existing entry. Wasteful, never wrong.
+
+  const parsed = await extractResume(file);
+
+  const res = await fetch('/api/match/embed', {
     method: 'POST',
-    body: form,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      resume_id: resumeId,
+      candidate_name: parsed?.personal_information?.full_name ?? undefined,
+      analysis: parsed,
+    }),
     signal,
   });
   return handle<IngestResponse>(res);
