@@ -1,11 +1,11 @@
 import Link from 'next/link';
 
 /**
- * Truecopy mark — two sheets held in exact registration.
+ * Hire mark — two sheets held in exact registration.
  * The back sheet is the source document; the front sheet is the copy,
  * offset by a precise, equal amount on both axes. Registration is the idea.
  */
-export function TruecopyMark({
+export function HireMark({
   size = 32,
   mono = false,
   className = '',
@@ -61,7 +61,7 @@ export function TruecopyMark({
 }
 
 /** Full lockup: mark + wordmark. `tone` adapts it to light or dark surfaces. */
-export function TruecopyLogo({
+export function HireLogo({
   tone = 'light',
   href = '/',
   size = 30,
@@ -72,13 +72,13 @@ export function TruecopyLogo({
 }) {
   const inner = (
     <span className="flex items-center gap-2">
-      <TruecopyMark size={size} />
+      <HireMark size={size} />
       <span
         className={`text-[16.5px] font-semibold tracking-[-0.02em] ${
           tone === 'dark' ? 'text-white' : 'text-tc-ink'
         }`}
       >
-        Truecopy
+        Hire
       </span>
     </span>
   );

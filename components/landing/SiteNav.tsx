@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { TruecopyLogo } from '@/components/brand/Logo';
+import { HireLogo } from '@/components/brand/Logo';
 import { ButtonLink } from '@/components/ui/Button';
 import UserMenu from '@/components/auth/UserMenu';
 
@@ -37,7 +37,7 @@ export default function SiteNav() {
         }`}
       >
         <div className="mx-auto flex h-16 max-w-[1140px] items-center justify-between px-5">
-          <TruecopyLogo />
+          <HireLogo />
 
           <nav className="hidden items-center gap-0.5 md:flex">
             {LINKS.map(l => (

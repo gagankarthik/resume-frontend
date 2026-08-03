@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 
 /**
- * Truecopy icon set.
+ * Hire icon set.
  *
  * Drawn on one 20×20 grid with a 1.5 stroke, round caps and joins, and a
  * shared 2.5-unit corner radius on every sheet. Everything in the product is

@@ -28,7 +28,7 @@ export default function Cookies() {
 
       <DocSection title="What we set">
         <p>
-          Truecopy sets no advertising or analytics cookies. Every cookie below is
+          Hire sets no advertising or analytics cookies. Every cookie below is
           strictly necessary for signing in, is httpOnly so page scripts cannot read it,
           and is marked Secure and SameSite in production.
         </p>

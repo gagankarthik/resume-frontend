@@ -9,7 +9,7 @@ export default function Privacy() {
 
       <DocSection title="What this covers">
         <p>
-          Truecopy is operated by Oceanblue Solutions. This policy describes what happens
+          Hire is operated by Oceanblue Solutions. This policy describes what happens
           to a resume you upload, what we keep, and what we do not.
         </p>
       </DocSection>

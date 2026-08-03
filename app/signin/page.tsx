@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { TruecopyLogo, TruecopyMark } from '@/components/brand/Logo';
+import { HireLogo, HireMark } from '@/components/brand/Logo';
 import SignInForm from '@/components/auth/SignInForm';
 import { getSessionUser } from '@/lib/auth/guard';
 import { authConfigured } from '@/lib/auth/config';
@@ -30,7 +30,7 @@ export default async function SignInPage({
       {/* Form */}
       <div className="flex flex-col px-5 py-8 sm:px-10">
         <div className="flex h-10 items-center justify-between">
-          <TruecopyLogo />
+          <HireLogo />
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13.5px] font-medium text-tc-muted transition-colors hover:bg-tc-desk hover:text-tc-ink"
@@ -57,7 +57,7 @@ export default async function SignInPage({
                 Sign-in is not configured
               </h1>
               <p className="mt-3 text-[14.5px] leading-[1.6] text-tc-muted">
-                This deployment has no user pool set, so Truecopy is running open. Set the
+                This deployment has no user pool set, so Hire is running open. Set the
                 Cognito values in the environment to require sign-in.
               </p>
               <Link
@@ -88,7 +88,7 @@ export default async function SignInPage({
       {/* Panel — what you are signing in to */}
       <aside className="relative hidden overflow-hidden bg-tc-desk lg:flex lg:flex-col lg:justify-center lg:px-14">
         <div className="max-w-[420px]">
-          <TruecopyMark size={40} />
+          <HireMark size={40} />
           <p className="mt-7 text-[26px] font-semibold leading-[1.25] tracking-[-0.025em] text-tc-ink">
             Every resume, copied word for word and set to the format the state requires.
           </p>

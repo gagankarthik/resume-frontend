@@ -1,4 +1,4 @@
-import { TruecopyLogo } from '@/components/brand/Logo';
+import { HireLogo } from '@/components/brand/Logo';
 import { LoadingRegion } from '@/components/ui/Skeleton';
 
 export default function UploadLoading() {
@@ -6,7 +6,7 @@ export default function UploadLoading() {
     <div className="flex min-h-screen flex-col bg-white">
       <header className="shrink-0 border-b border-tc-line bg-white">
         <div className="mx-auto flex h-16 max-w-[1140px] items-center gap-4 px-5">
-          <TruecopyLogo size={28} />
+          <HireLogo size={28} />
           <span className="hidden h-5 w-px bg-tc-line sm:block" />
           <span className="h-[9px] w-48 animate-pulse rounded-full bg-tc-desk-2" />
         </div>

@@ -127,7 +127,7 @@ export default function SignInForm({ next = '/upload' }: { next?: string }) {
   }[stage.kind];
 
   const sub = {
-    credentials: 'Use the account your team set up for Truecopy.',
+    credentials: 'Use the account your team set up for Hire.',
     mfa: 'One more step before we let you in.',
     newPassword: 'This account needs a password of your own.',
     forgotRequest: 'We will send a code to your email address.',

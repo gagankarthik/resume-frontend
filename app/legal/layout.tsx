@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TruecopyLogo } from '@/components/brand/Logo';
+import { HireLogo } from '@/components/brand/Logo';
 
 const PAGES = [
   { href: '/legal/privacy', label: 'Privacy policy' },
@@ -15,7 +15,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
     <div className="flex min-h-screen flex-col bg-white">
       <header className="border-b border-tc-line">
         <div className="mx-auto flex h-16 max-w-[1140px] items-center justify-between px-5">
-          <TruecopyLogo />
+          <HireLogo />
           <Link
             href="/"
             className="text-[13.5px] font-medium text-tc-muted transition-colors hover:text-tc-ink"

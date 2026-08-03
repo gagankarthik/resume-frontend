@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 
 import { usePathname } from 'next/navigation';
-import { TruecopyLogo } from '@/components/brand/Logo';
+import { HireLogo } from '@/components/brand/Logo';
 import UserMenu from '@/components/auth/UserMenu';
 
 /**
@@ -32,7 +32,7 @@ export default function AppHeader({ children }: { children?: ReactNode }) {
       <div className="grid h-16 w-full grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 sm:px-6">
         {/* The logo links home on its own — do not wrap it in another link. */}
         <div className="justify-self-start">
-          <TruecopyLogo size={28} />
+          <HireLogo size={28} />
         </div>
 
         {/* Plain links, not buttons — this is navigation between places, and it

@@ -6,7 +6,7 @@ import ParticleSphere from './ParticleSphere';
 /**
  * Orbiting rings around a particle core.
  *
- * The rings carry what actually travels through Truecopy: the file types that
+ * The rings carry what actually travels through Hire: the file types that
  * go in, and the agency templates that come out. Chips counter-rotate so their
  * labels stay upright as the ring turns.
  */

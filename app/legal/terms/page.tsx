@@ -9,15 +9,15 @@ export default function Terms() {
 
       <DocSection title="Agreement">
         <p>
-          These terms govern your use of Truecopy, operated by Oceanblue Solutions. By
-          uploading a document you accept them. If you are using Truecopy on behalf of an
+          These terms govern your use of Hire, operated by Oceanblue Solutions. By
+          uploading a document you accept them. If you are using Hire on behalf of an
           employer, you confirm you are authorised to accept on its behalf.
         </p>
       </DocSection>
 
       <DocSection title="What the service does">
         <p>
-          Truecopy reads a resume, extracts its sections, checks the result against the
+          Hire reads a resume, extracts its sections, checks the result against the
           source, and produces a Word document in a selected template. It is a formatting
           and transcription tool. It does not screen, score, rank, or make any decision
           about a candidate.
@@ -39,7 +39,7 @@ export default function Terms() {
         <p>
           Extraction is checked line by line against the source and gaps are flagged, but
           no automated system is perfect. The exported document is yours once you export
-          it, and you are responsible for what you submit. Truecopy is provided without
+          it, and you are responsible for what you submit. Hire is provided without
           warranty that every field will be captured correctly.
         </p>
       </DocSection>

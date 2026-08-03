@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TruecopyLogo } from '@/components/brand/Logo';
+import { HireLogo } from '@/components/brand/Logo';
 import { ButtonLink } from '@/components/ui/Button';
 
 const REASONS: Record<string, string> = {
@@ -25,7 +25,7 @@ export default async function SignedOut({
     <main className="flex min-h-screen flex-col bg-white">
       <div className="border-b border-tc-line">
         <div className="mx-auto flex h-16 max-w-[1140px] items-center px-5">
-          <TruecopyLogo />
+          <HireLogo />
         </div>
       </div>
 

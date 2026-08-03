@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { TruecopyLogo } from '@/components/brand/Logo';
+import { HireLogo } from '@/components/brand/Logo';
 import { Button } from '@/components/ui/Button';
 import { IconAlert } from '@/components/ui/icons';
 
@@ -14,14 +14,14 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[truecopy]', error);
+    console.error('[hire]', error);
   }, [error]);
 
   return (
     <main className="flex min-h-screen flex-col bg-white">
       <div className="border-b border-tc-line">
         <div className="mx-auto flex h-16 max-w-[1140px] items-center px-5">
-          <TruecopyLogo />
+          <HireLogo />
         </div>
       </div>
 

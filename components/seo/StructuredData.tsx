@@ -11,11 +11,11 @@ const ORIGIN = process.env.NEXT_APP_ORIGIN ?? 'https://hire.oceanbluecorp.com';
 
 const FAQ = [
   {
-    q: 'What file types can I upload to Truecopy?',
+    q: 'What file types can I upload to Hire?',
     a: 'PDF, Word (.docx and .doc), and plain text, up to 20 MB. Scanned pages are read with OCR.',
   },
   {
-    q: 'Does Truecopy reword a resume?',
+    q: 'Does Hire reword a resume?',
     a: 'No. Bullets and descriptions are copied character for character. Only the layout changes.',
   },
   {
@@ -39,12 +39,12 @@ export default function StructuredData() {
       {
         '@type': 'SoftwareApplication',
         '@id': `${ORIGIN}/#app`,
-        name: 'Truecopy',
+        name: 'Hire',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
         url: ORIGIN,
         description:
-          'Truecopy reads a resume in PDF, Word, or plain text, extracts every section word for word, checks the result against the original, and writes a submission-ready Word document in the format a state agency requires.',
+          'Hire reads a resume in PDF, Word, or plain text, extracts every section word for word, checks the result against the original, and writes a submission-ready Word document in the format a state agency requires.',
         featureList: [
           'Word-for-word extraction of 20+ resume sections',
           'Coverage check against the source document',

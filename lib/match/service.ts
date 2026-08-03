@@ -16,6 +16,12 @@ import { matchKey, matchUrl } from '@/lib/auth/config';
  * The engine's store is shared with another application's resume bank. Scoping
  * every write and every search to this source is what keeps the two apart —
  * a search here ranks resumes uploaded here, and nothing else.
+ *
+ * This still reads 'truecopy' after the rename to Hire, deliberately. It is a
+ * stored value, not a label: every resume already in the engine carries it, so
+ * changing the string here without rewriting those rows would scope searches to
+ * a tag nothing is filed under and return an empty set. Rename it only together
+ * with a migration over the existing records.
  */
 export const APP_SOURCE = 'truecopy';
 

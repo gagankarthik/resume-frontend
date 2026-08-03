@@ -9,7 +9,7 @@ export default function Accessibility() {
 
       <DocSection title="Our aim">
         <p>
-          Truecopy is built to meet WCAG 2.1 level AA. State workforce submissions are
+          Hire is built to meet WCAG 2.1 level AA. State workforce submissions are
           public-sector work, and the tool that produces them should not exclude the
           people doing it.
         </p>

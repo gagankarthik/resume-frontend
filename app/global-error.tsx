@@ -27,7 +27,7 @@ export default function GlobalError({
       >
         <div style={{ maxWidth: 420, textAlign: 'center' }}>
           <h1 style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.03em', margin: 0 }}>
-            Truecopy could not load
+            Hire could not load
           </h1>
           <p style={{ marginTop: 12, fontSize: 15, lineHeight: 1.6, color: '#5C6E88' }}>
             Reload the page. If it keeps happening, the app may be mid-deploy.
