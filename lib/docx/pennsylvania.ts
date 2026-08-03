@@ -7,7 +7,7 @@ import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
 import {
   stripBullet, normalizeMonthAbbr, splitProseToBullets, sortEducation,
-  formatLocation, getEdLocation, formatProjectTitle,
+  formatLocation, getEdLocation, formatProjectTitle, awardedLabel,
   groupResponsibilities,
   BODY_SPACING, RIGHT_TAB, TABLE_BORDER,
 } from './shared';
@@ -90,7 +90,7 @@ function buildEducationTable(data: ResumeData): Table {
               eduDataCell(edu.areaOfStudy ?? ''),
               eduDataCell(edu.school ?? ''),
               eduDataCell(getEdLocation(edu.location)),
-              eduDataCell(edu.wasAwarded ? 'Yes' : 'No'),
+              eduDataCell(awardedLabel(edu.wasAwarded)),
               eduDataCell(edu.date ?? ''),
             ],
           }),

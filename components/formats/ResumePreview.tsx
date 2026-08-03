@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { ResumeData } from '@/lib/types';
-import { stripBullet, normalizeMonthAbbr, sortEducation, getEdLocation, formatLocation, groupResponsibilities, projectTitleWithClient } from '@/lib/docx/shared';
+import { stripBullet, normalizeMonthAbbr, sortEducation, getEdLocation, formatLocation, groupResponsibilities, projectTitleWithClient, awardedLabel } from '@/lib/docx/shared';
 import { splitProseToBullets } from '@/formatters/shared/utils';
 import OceanblueFormat from './OceanblueFormat';
 import GeorgiaFormat from './GeorgiaFormat';
@@ -81,7 +81,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                 <tbody>
                   {sortedEdu.map((edu, i) => (
                     <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#fafafa' }}>
-                      {[edu.degree ?? '', edu.areaOfStudy ?? '', edu.school ?? '', getEdLocation(edu.location), edu.wasAwarded ? 'Yes' : 'No', edu.date ?? ''].map((v, j) => (
+                      {[edu.degree ?? '', edu.areaOfStudy ?? '', edu.school ?? '', getEdLocation(edu.location), awardedLabel(edu.wasAwarded), edu.date ?? ''].map((v, j) => (
                         <td key={j} style={{ padding: '4px 6px', textAlign: 'center', border: '1px solid #bbb' }}>{v || '—'}</td>
                       ))}
                     </tr>

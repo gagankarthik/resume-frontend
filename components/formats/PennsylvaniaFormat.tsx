@@ -166,7 +166,10 @@ const PennsylvaniaFormat = React.forwardRef<HTMLDivElement, Props>(
                           {edu.degree}{edu.areaOfStudy ? ` in ${edu.areaOfStudy}` : ''}
                         </h3>
                         <p className="text-gray-700">{edu.school}</p>
-                        <p className="text-sm text-gray-500 italic">{edu.wasAwarded ? 'Degree awarded' : 'In progress'}</p>
+                        {/* Silent when the resume never said — see OhioFormat. */}
+                        {edu.wasAwarded !== undefined && (
+                          <p className="text-sm text-gray-500 italic">{edu.wasAwarded ? 'Degree awarded' : 'In progress'}</p>
+                        )}
                       </div>
                       <div className="text-right text-sm text-gray-500">
                         <p>{edu.date}</p>

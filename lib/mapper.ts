@@ -76,7 +76,12 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     school: e.institution_name,
     date: e.end_date ?? e.start_date,
     location: e.location,
-    wasAwarded: e.is_current ? false : !!e.end_date,
+    // Tri-state on purpose. This was `!!e.end_date`, which turned "the resume
+    // never gave an end date" into "the degree was not awarded" — a claim the
+    // resume does not make, printed as "No" on a submitted document. A degree
+    // still in progress is a real No; a missing date is simply unknown, and
+    // the templates render that as "-".
+    wasAwarded: e.is_current ? false : e.end_date ? true : undefined,
   }));
 
   // certifications

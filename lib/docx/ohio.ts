@@ -7,7 +7,7 @@ import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
 import {
   stripBullet, normalizeMonthAbbr, splitProseToBullets, sortEducation,
-  formatLocation, getEdLocation, formatProjectTitle, projectTitleWithClient,
+  formatLocation, getEdLocation, formatProjectTitle, projectTitleWithClient, awardedLabel,
   groupResponsibilities,
   BODY_SPACING, RIGHT_TAB, TABLE_BORDER,
 } from './shared';
@@ -65,7 +65,7 @@ function buildEducationTable(data: ResumeData): Table {
               eduDataCell(edu.areaOfStudy ?? ''),
               eduDataCell(edu.school ?? ''),
               eduDataCell(getEdLocation(edu.location)),
-              eduDataCell(edu.wasAwarded ? 'Yes' : 'No'),
+              eduDataCell(awardedLabel(edu.wasAwarded)),
               eduDataCell(edu.date ?? ''),
             ],
           }),
@@ -367,7 +367,15 @@ function buildSkills(data: ResumeData): Paragraph[] {
 
 // ── Public API ─────────────────────────────────────────────────────────────
 
-export async function buildOhioDocx(data: ResumeData): Promise<void> {
+/**
+ * Assemble the document, without writing it anywhere.
+ *
+ * Split out from buildOhioDocx so the layout can be built and inspected off a
+ * browser: saveAs needs a DOM, which meant the only way to see what this
+ * produces was to download it and open Word. A rendering bug reaches whoever
+ * the resume was submitted to, so it needs to be checkable in a test.
+ */
+export function buildOhioDocument(data: ResumeData): Document {
   const sectionHdrRun = (t: string) =>
     new TextRun({ text: t, bold: true, size: 28, color: '1F497D', font: 'Times New Roman' });
   const sectionHdr = (t: string) =>
@@ -479,6 +487,11 @@ export async function buildOhioDocx(data: ResumeData): Promise<void> {
     }],
   });
 
-  const blob = await Packer.toBlob(doc);
+  return doc;
+}
+
+/** Build the document and hand it to the browser as a download. */
+export async function buildOhioDocx(data: ResumeData): Promise<void> {
+  const blob = await Packer.toBlob(buildOhioDocument(data));
   saveAs(blob, `${data.name ?? 'Resume'}_Ohio.docx`);
 }

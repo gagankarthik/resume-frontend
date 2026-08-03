@@ -238,10 +238,57 @@ export function formatProjectTitle(proj: Record<string, unknown>, idx: number, t
     clean = clean.replace(new RegExp(`\\s*[-–—,:|]?\\s*${esc}\\s*`, 'ig'), ' ');
   }
   clean =
-    clean.replace(/\s{2,}/g, ' ').replace(/^[-–—,:|()\s]+|[-–—,:|()\s]+$/g, '').trim() ||
+    tidyTitleEdges(clean.replace(/\s{2,}/g, ' ')) ||
     rawName.trim().slice(0, 60) ||
     'Project';
   return total > 1 ? `Project ${idx + 1}: ${clean}` : clean;
+}
+
+/**
+ * Trim the punctuation left behind after a date or location is cut out of a
+ * title, without damaging the title itself.
+ *
+ * Brackets are the delicate part. They were in the trailing strip set, which
+ * meant any title legitimately ending in one lost it: "Serverless Workflow
+ * (AWS Lambda + API Gateway)" came out as "...(AWS Lambda + API Gateway" — an
+ * unclosed bracket, in the document that gets submitted. They belong in the
+ * set only when they are empty or unmatched, which is what the removals above
+ * actually leave behind.
+ */
+function tidyTitleEdges(text: string): string {
+  let out = text;
+
+  // "Project X ()" — the bracket held a date or location and nothing else.
+  out = out.replace(/\(\s*\)/g, ' ');
+
+  // Separators, but not brackets: those are decided by balance, below.
+  out = out.replace(/^[-–—,:|\s]+|[-–—,:|\s]+$/g, '').trim();
+
+  // A bracket left open by a removal inside it, e.g. "Pipeline (Airbyte on".
+  const opens = (out.match(/\(/g) ?? []).length;
+  const closes = (out.match(/\)/g) ?? []).length;
+  if (opens > closes) {
+    // Prefer keeping the words: close it rather than cut back to the bracket.
+    out = `${out}${')'.repeat(opens - closes)}`;
+  } else if (closes > opens) {
+    // A stray closer with no opener reads as a typo; drop the extras.
+    let excess = closes - opens;
+    out = out.replace(/\)/g, m => (excess-- > 0 ? '' : m));
+  }
+
+  return out.replace(/\s{2,}/g, ' ').trim();
+}
+
+/**
+ * How a template shows "was the degree awarded?".
+ *
+ * Three answers, not two. A resume that never says is answered with the
+ * table's own placeholder — printing "No" against a degree the candidate holds
+ * is a claim the source document does not make.
+ */
+export function awardedLabel(wasAwarded: boolean | undefined): string {
+  if (wasAwarded === undefined) return '-';
+  return wasAwarded ? 'Yes' : 'No';
 }
 
 // Sub-project display title including the client and location, which were

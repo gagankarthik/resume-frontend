@@ -160,7 +160,11 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
                         <p className="text-gray-600">{getEducationCountry(edu.location) || 'Location'}</p>
                       </div>
                     </div>
-                    <p className="text-gray-600">{edu.wasAwarded ? 'Degree awarded' : 'Degree in progress'}</p>
+                    {/* Silent when the resume never said. Printing "in progress"
+                        against a degree the candidate holds invents a fact. */}
+                    {edu.wasAwarded !== undefined && (
+                      <p className="text-gray-600">{edu.wasAwarded ? 'Degree awarded' : 'Degree in progress'}</p>
+                    )}
                   </div>
                 ))}
               </section>
