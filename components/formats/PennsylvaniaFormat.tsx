@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FiDownload, FiPrinter } from 'react-icons/fi';
 import type { ResumeData } from '@/lib/types';
 import {
-  stripBullet, normalizeMonthAbbr, splitProseToBullets,
+  stripBullet, formatDatePeriod, splitProseToBullets,
   sortEducation, formatEmploymentLocation, getEducationCountry,
 } from '@/formatters/shared/utils';
 import StateDownloadDialog from './StateDownloadDialog';
@@ -116,7 +116,7 @@ const PennsylvaniaFormat = React.forwardRef<HTMLDivElement, Props>(
                 <SectionTitle label="Employment History" />
                 {resumeData.employmentHistory!.map((job, i) => {
                   const loc = formatEmploymentLocation(job.location ?? '');
-                  const period = normalizeMonthAbbr(job.workPeriod ?? '');
+                  const period = formatDatePeriod(job.workPeriod ?? '');
                   return (
                     <div key={i} className="mb-5 pl-4 border-l-4 border-pa-gold">
                       <div className="flex justify-between items-baseline flex-wrap gap-1">

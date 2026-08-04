@@ -6,21 +6,10 @@ export function stripBullet(s: string): string {
   return s.replace(BULLET_RE, '').trim();
 }
 
-const MONTH_MAP: Record<string, string> = {
-  January: 'Jan', February: 'Feb', March: 'Mar', April: 'Apr',
-  May: 'May', June: 'Jun', July: 'Jul', August: 'Aug',
-  September: 'Sep', October: 'Oct', November: 'Nov', December: 'Dec',
-};
-
-export function normalizeMonthAbbr(s: string): string {
-  return s
-    .replace(
-      /\b(January|February|March|April|May|June|July|August|September|October|November|December)\b/g,
-      (m) => MONTH_MAP[m] ?? m,
-    )
-    // Date ranges always use an en dash with spaces, never a bare hyphen.
-    .replace(/\s*[-‐‑–—]+\s*/g, ' – ');
-}
+// Date formatting lives in one place. This module used to carry a second,
+// case-sensitive copy, so "JULY 2015" normalised in the Georgia and Oceanblue
+// formats but not in Ohio or Pennsylvania, which import from here.
+export { normalizeMonthAbbr, normalizeDateSeparator, formatDatePeriod } from '@/lib/docx/shared';
 
 export function splitBulletItems(s: string): string[] {
   if (!s) return [];
@@ -50,41 +39,20 @@ function splitInlineBullets(s: string): string[] {
   return parts.length > 0 ? parts : [s];
 }
 
-// Sentence-split helper. Only splits genuinely long prose blocks (a real paragraph);
-// bullets of typical length are kept whole so their sentences aren't chopped apart.
-// Abbreviations like Sr., Inc., Ph.D., e.g. are re-merged so titles don't get chopped.
-const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
-
-const SENTENCE_SPLIT_MIN = 300;
-
-function sentenceSplit(text: string): string[] {
-  const t = text.replace(/\s+/g, ' ').trim();
-  if (t.length < SENTENCE_SPLIT_MIN) return [t];
-
-  const parts: string[] = [];
-  let buf = '';
-  const tokens = t.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
-  for (const tok of tokens) {
-    if (ABBREVS.test(buf)) {
-      buf = `${buf} ${tok}`;
-      continue;
-    }
-    if (buf) parts.push(buf.trim());
-    buf = tok;
-  }
-  if (buf) parts.push(buf.trim());
-
-  const cleaned = parts.filter(Boolean);
-  return cleaned.length > 1 ? cleaned : [t];
-}
-
-// Splits prose-or-bulleted input into bullets. First applies the structured splitters
-// (newlines / glyphs / | / ;) via splitBulletItems, then sentence-splits each resulting
-// chunk so multi-sentence pre-bullet text doesn't render as one mega-bullet.
+/**
+ * Splits prose-or-bulleted input into bullets, using ONLY the separators the
+ * source itself wrote: newlines, bullet glyphs, and the legacy " | ".
+ *
+ * There used to be a sentence-splitting pass here that chopped any block over
+ * 300 characters into one bullet per sentence. It changed the count: a
+ * candidate with one long responsibility got four bullets on the rendered
+ * resume, none of which they had written that way. Splitting on punctuation
+ * the author did not intend as a list separator is authoring, not formatting.
+ * One source item now stays one item.
+ */
 export function splitProseToBullets(s: string): string[] {
   if (!s) return [];
-  const items = splitBulletItems(s);
-  return items.flatMap(sentenceSplit).filter(Boolean);
+  return splitBulletItems(s).filter(Boolean);
 }
 
 export function sortEducation(education: OhioEducationEntry[]): OhioEducationEntry[] {

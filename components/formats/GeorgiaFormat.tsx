@@ -4,7 +4,7 @@ import React from 'react';
 import type { ResumeData } from '@/lib/types';
 import {
   stripBullet,
-  normalizeMonthAbbr,
+  formatDatePeriod,
   sortEducation,
   getEdLocation,
   formatLocation,
@@ -40,10 +40,6 @@ function shortenGitHub(url: string): string {
 }
 
 const FONT = 'Verdana, Geneva, sans-serif';
-
-// Normalize any "ongoing" end token to a single consistent "Till Date".
-const normalizeTillDate = (period = '') =>
-  period.replace(/\b(present|current|till\s*date|to\s*date|now|ongoing|present day)\b/gi, 'Till Date');
 
 const SectionHeader = ({ label }: { label: string }) => (
   <p style={{
@@ -132,8 +128,8 @@ const GeorgiaFormat: React.FC<Props> = ({ resumeData }) => {
               <SectionHeader label="Employment History" />
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc    = resolveLocation(job.location ?? '');
-                // Small hyphen for the date range, not the en dash normalizeMonthAbbr emits.
-                const period = normalizeTillDate(normalizeMonthAbbr(job.workPeriod ?? '')).replace(/\s*–\s*/g, ' - ');
+                // Small hyphen for the date range, not the en dash formatDatePeriod emits.
+                const period = formatDatePeriod(job.workPeriod ?? '').replace(/\s*–\s*/g, ' - ');
                 const liveResps = (job.responsibilities ?? []).filter(r => r && r.trim());
                 const points = liveResps.flatMap(splitProseToBullets);
                 return (

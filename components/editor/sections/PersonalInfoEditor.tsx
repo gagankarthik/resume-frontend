@@ -33,11 +33,17 @@ const PersonalInfoEditor: React.FC<Props> = ({ data, onChange }) => {
     <div>
       <div className="pb-3 mb-5 border-b border-gov-gray-200">
         <h3 className="text-sm font-extrabold text-gov-gray-900 uppercase tracking-wide">Personal Information</h3>
-        <p className="text-xs text-gov-gray-400 mt-0.5">Core identity fields as extracted from the resume</p>
+        <p className="text-xs text-gov-gray-400 mt-0.5">Core identity fields exactly as they appear in the resume</p>
       </div>
 
+      {/* Recruiter-entered fields. Neither is parsed from the resume — the
+          Title / Role is the position being filled, not a claim the candidate's
+          document makes about itself. */}
       <SectionLabel>Application</SectionLabel>
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Field label="Title / Role" value={pi.title_role}
+          onChange={v => update({ title_role: v })}
+          hint="The role this candidate is being submitted for — entered by you, not extracted" />
         <Field label="Requisition Number" value={pi.requisition_number}
           onChange={v => update({ requisition_number: v })}
           hint="VectorVMS / PeopleFluent requisition number for the job posting" />
@@ -46,7 +52,6 @@ const PersonalInfoEditor: React.FC<Props> = ({ data, onChange }) => {
       <SectionLabel>Name</SectionLabel>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Full Name" value={pi.full_name} onChange={v => update({ full_name: v })} />
-        <Field label="Profile Headline / Title" value={pi.profile_headline} onChange={v => update({ profile_headline: v })} />
         <Field label="First Name" value={pi.first_name} onChange={v => update({ first_name: v })} />
         <Field label="Last Name" value={pi.last_name} onChange={v => update({ last_name: v })} />
       </div>

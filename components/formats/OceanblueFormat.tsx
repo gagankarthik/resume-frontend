@@ -5,7 +5,7 @@ import Image from 'next/image';
 import type { ResumeData } from '@/lib/types';
 import {
   stripBullet,
-  normalizeMonthAbbr,
+  formatDatePeriod,
   sortEducation,
   getEdLocation,
   groupResponsibilities,
@@ -183,7 +183,7 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
               <SectionHeader label="Work Experience" />
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc    = resolveLocation(job.location ?? '');
-                const period = normalizeMonthAbbr(job.workPeriod ?? '');
+                const period = formatDatePeriod(job.workPeriod ?? '');
                 const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
                 const grouped = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
                 return (

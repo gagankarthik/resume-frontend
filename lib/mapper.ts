@@ -7,53 +7,56 @@ import type {
   SimpleProject,
   SkillCategory,
   TokenStats,
-  AwardEntry,
-  PublicationEntry,
-  LanguageEntry,
-  VolunteerEntry,
   PatentEntry,
-  MembershipEntry,
   ConferenceEntry,
   CourseEntry,
   TrainingEntry,
   ReferenceEntry,
 } from './types';
+import { normalizeMonthAbbr } from './docx/shared';
 
-// Build a "Start – End" period string when both dates are present.
-function buildPeriod(start?: string, end?: string, isCurrent?: boolean): string | undefined {
-  const s = (start ?? '').trim();
-  const e = isCurrent ? 'Present' : (end ?? '').trim();
-  if (!s && !e) return undefined;
-  if (!s) return e;
-  if (!e) return s;
-  return `${s} – ${e}`;
-}
+/** Every way a resume writes "this job is ongoing". */
+const ONGOING_END_DATE = /^(present|present day|current|currently|till\s*date|to\s*date|now|ongoing|date)$/i;
 
+/**
+ * "Start – End" for a job, with two normalisations applied consistently across
+ * every format:
+ *
+ *   • month names shortened to three letters — "July 2019" → "Jul 2019";
+ *   • any ongoing end token collapsed to a single "Till Date", so one resume
+ *     saying "Present" and the next saying "Current" render identically.
+ *
+ * A job with no end date and no is_current flag keeps a blank end rather than
+ * being labelled ongoing — that the resume simply did not say.
+ */
 function buildWorkPeriod(start?: string, end?: string, isCurrent?: boolean): string {
-  const s = start ?? '';
-  // Any ongoing/empty end is normalized to a single consistent "Till Date".
-  const rawEnd = isCurrent ? 'Till Date' : (end ?? 'Till Date');
-  const e = /\b(present|current|till\s*date|to\s*date|now|ongoing)\b/i.test(rawEnd) ? 'Till Date' : rawEnd;
+  const s = normalizeMonthAbbr((start ?? '').trim());
+  const rawEnd = (end ?? '').trim();
+  const e = isCurrent || ONGOING_END_DATE.test(rawEnd)
+    ? 'Till Date'
+    : normalizeMonthAbbr(rawEnd);
   if (!s && !e) return '';
   if (!s) return e;
   if (!e) return s;
   return `${s} – ${e}`;
 }
 
-// Title-case a name that arrived in ALL CAPS, preserving O'Brien / Smith-Jones
-// style punctuation. Mixed-case names pass through untouched.
+/**
+ * The candidate's name, exactly as the resume prints it.
+ *
+ * An ALL CAPS name used to be converted to Title Case here. "JOHN SMITH" is
+ * how that candidate writes their name; re-casing it is a change to their
+ * name, and the tool's job is to reproduce the document, not restyle it.
+ * Rebuilding a missing full_name from first_name + last_name is kept — that
+ * recovers text the resume does contain rather than altering it.
+ */
 function formatName(pi?: APIResponse['personal_information']): string | undefined {
   let name = (pi?.full_name ?? '').trim();
-  // If full_name is missing or lost the surname, rebuild it from the parts.
   const composed = [pi?.first_name, pi?.last_name].filter(Boolean).join(' ').trim();
   if (!name || (!name.includes(' ') && composed.includes(' '))) {
     name = composed || name;
   }
-  if (!name) return undefined;
-  if (name === name.toUpperCase() && /[A-Z]/.test(name)) {
-    name = name.toLowerCase().replace(/(^|[\s\-'.])([a-z])/g, (_, sep, ch) => sep + ch.toUpperCase());
-  }
-  return name;
+  return name || undefined;
 }
 
 export function mapToResumeData(api: APIResponse): ResumeData {
@@ -68,13 +71,15 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     cost: typeof meta.cost === 'number' ? meta.cost : undefined,
   } : undefined;
 
-  // education — prefer the standardized abbreviation (BS, MBA, …) for the Degree
-  // column; the verbatim degree text is the fallback when no abbreviation exists.
+  // education — the degree exactly as the resume writes it. This used to prefer
+  // the standardized abbreviation, printing "BS" over the candidate's own
+  // "Bachelor of Science in Computer Engineering". degree_type is now only the
+  // fallback for when no verbatim degree text was found.
   const education: OhioEducationEntry[] = (api.education ?? []).map(e => ({
-    degree: e.degree_type ?? e.degree,
+    degree: e.degree ?? e.degree_type,
     areaOfStudy: e.field_of_study ?? e.major,
     school: e.institution_name,
-    date: e.end_date ?? e.start_date,
+    date: normalizeMonthAbbr(e.end_date ?? e.start_date ?? '') || undefined,
     location: e.location,
     // Tri-state on purpose. This was `!!e.end_date`, which turned "the resume
     // never gave an end date" into "the degree was not awarded" — a claim the
@@ -88,8 +93,8 @@ export function mapToResumeData(api: APIResponse): ResumeData {
   const certifications: OhioCertificationEntry[] = (api.certifications ?? []).map(c => ({
     name: c.name,
     issuedBy: c.issuing_organization,
-    dateObtained: c.issue_date,
-    expirationDate: c.expiry_date,
+    dateObtained: normalizeMonthAbbr(c.issue_date ?? '') || undefined,
+    expirationDate: normalizeMonthAbbr(c.expiry_date ?? '') || undefined,
     certificationNumber: c.credential_id,
   }));
 
@@ -184,52 +189,25 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     }
   }
 
-  const title = pi?.profile_headline
-    ?? api.work_experience?.[0]?.job_title
-    ?? undefined;
+  // Title / Role is supplied by the recruiter, exactly like the requisition
+  // number beside it. It is never derived from the resume: the old fallback
+  // chain took the most recent job_title and printed it as the candidate's
+  // current title, which is a claim the document does not make.
+  const title = pi?.title_role || undefined;
 
   // ── Supplemental sections ─────────────────────────────────────────────
   // Each maps directly from the API arrays. Empty arrays become undefined
   // so the frontend's "render only if data exists" guards remain accurate.
+  //
+  // Awards, publications, languages, volunteer experience, memberships and
+  // interests are not mapped — the engine no longer extracts them and no
+  // format renders them.
   const orEmpty = <T>(arr: T[] | undefined): T[] | undefined =>
     (arr && arr.length > 0) ? arr : undefined;
-
-  const awards: AwardEntry[] | undefined = orEmpty(
-    (api.awards_and_honors ?? []).map(a => ({
-      title: a.title, issuer: a.issuer, date: a.date, description: a.description,
-    })),
-  );
-
-  const publications: PublicationEntry[] | undefined = orEmpty(
-    (api.publications ?? []).map(p => ({
-      title: p.title, publisher: p.publisher, journal: p.journal,
-      date: p.date, url: p.url, description: p.description,
-    })),
-  );
-
-  const languagesSpoken: LanguageEntry[] | undefined = orEmpty(
-    (api.languages ?? []).map(l => ({ language: l.language, proficiency: l.proficiency })),
-  );
-
-  const volunteerExperience: VolunteerEntry[] | undefined = orEmpty(
-    (api.volunteer_experience ?? []).map(v => ({
-      organization: v.organization, role: v.role,
-      period: buildPeriod(v.start_date, v.end_date, v.is_current),
-      location: v.location, description: v.description,
-      responsibilities: v.responsibilities,
-    })),
-  );
 
   const patents: PatentEntry[] | undefined = orEmpty(
     (api.patents ?? []).map(p => ({
       title: p.title, patentNumber: p.patent_number, date: p.date, description: p.description,
-    })),
-  );
-
-  const memberships: MembershipEntry[] | undefined = orEmpty(
-    (api.professional_memberships ?? []).map(m => ({
-      organization: m.organization, role: m.role,
-      period: buildPeriod(m.start_date, m.end_date, m.is_current),
     })),
   );
 
@@ -248,11 +226,6 @@ export function mapToResumeData(api: APIResponse): ResumeData {
       name: t.name, provider: t.provider, date: t.date, description: t.description,
     })),
   );
-
-  const interests: string[] | undefined =
-    (api.interests_and_hobbies && api.interests_and_hobbies.length > 0)
-      ? api.interests_and_hobbies
-      : undefined;
 
   const references: ReferenceEntry[] | undefined = orEmpty(
     (api.references ?? []).map(r => ({
@@ -287,16 +260,10 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     professionalSummary,
     technicalSkills,
     skillCategories,
-    awards,
-    publications,
-    languagesSpoken,
-    volunteerExperience,
     patents,
-    memberships,
     conferences,
     courses,
     training,
-    interests,
     references,
   };
 }

@@ -7,7 +7,7 @@ import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
 import {
   stripBullet,
-  normalizeMonthAbbr,
+  formatDatePeriod,
   sortEducation,
   getEdLocation,
   formatLocation,
@@ -24,14 +24,6 @@ const SP_AFTER = { before: 0, after: 80,  line: 240, lineRule: LineRuleType.AUTO
 function resolveJobLocation(raw: string): string {
   const f = formatLocation(raw ?? '');
   return /^(remote|work from home|wfh|n\/a)$/i.test(f.trim()) ? '' : f;
-}
-
-// Normalize any "ongoing" end token to a single consistent "Till Date".
-function normalizeTillDate(period: string): string {
-  return (period ?? '').replace(
-    /\b(present|current|till\s*date|to\s*date|now|ongoing|present day)\b/gi,
-    'Till Date',
-  );
 }
 
 function shortenLinkedIn(url: string): string {
@@ -99,8 +91,8 @@ function buildEmployment(data: ResumeData): Paragraph[] {
   data.employmentHistory.forEach((job, idx) => {
     try {
       const loc    = resolveJobLocation(job.location ?? '');
-      // Use a small hyphen for the date range, not the en dash normalizeMonthAbbr emits.
-      const period = normalizeTillDate(normalizeMonthAbbr(job.workPeriod ?? '')).replace(/\s*–\s*/g, ' - ');
+      // Use a small hyphen for the date range, not the en dash formatDatePeriod emits.
+      const period = formatDatePeriod(job.workPeriod ?? '').replace(/\s*–\s*/g, ' - ');
 
       if (idx > 0) paras.push(blankLine());
 

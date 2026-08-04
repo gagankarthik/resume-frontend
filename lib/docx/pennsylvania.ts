@@ -1,12 +1,12 @@
 import {
   Document, Packer, Paragraph, Table, TableCell, TableRow,
-  TextRun, BorderStyle, AlignmentType, WidthType, ShadingType,
-  VerticalAlign, LevelFormat, TabStopType, LineRuleType, HeightRule,
+  TextRun, AlignmentType, WidthType, ShadingType,
+  VerticalAlign, LevelFormat, LineRuleType, HeightRule,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
 import {
-  stripBullet, normalizeMonthAbbr, splitProseToBullets, sortEducation,
+  stripBullet, formatDatePeriod, splitProseToBullets, sortEducation,
   formatLocation, getEdLocation, formatProjectTitle, awardedLabel,
   groupResponsibilities,
   BODY_SPACING, RIGHT_TAB, TABLE_BORDER,
@@ -231,7 +231,7 @@ function buildEmploymentHistory(data: ResumeData): Paragraph[] {
     try {
       const loc = resolveJobLocation(job.location ?? '');
       const dept = (job.department ?? job.subRole ?? '').trim();
-      const period = normalizeMonthAbbr(job.workPeriod ?? '');
+      const period = formatDatePeriod(job.workPeriod ?? '');
 
       if (idx > 0) paras.push(blankLine());
 

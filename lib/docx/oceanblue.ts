@@ -7,7 +7,7 @@ import { saveAs } from 'file-saver';
 import type { ResumeData } from '@/lib/types';
 import {
   stripBullet,
-  normalizeMonthAbbr,
+  formatDatePeriod,
   sortEducation,
   getEdLocation,
   formatLocation,
@@ -111,13 +111,6 @@ const plain = (text: string) =>
     children: [new TextRun({ text, font: 'Calibri', size: 22 })],
   });
 
-const centeredPlain = (text: string) =>
-  new Paragraph({
-    alignment: AlignmentType.CENTER,
-    spacing: SP,
-    children: [new TextRun({ text, font: 'Calibri', size: 22 })],
-  });
-
 const bulletPara = (text: string) =>
   new Paragraph({
     numbering: { reference: 'resumeBullet', level: 0 },
@@ -138,7 +131,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
   data.employmentHistory.forEach((job, idx) => {
     try {
       const loc    = resolveJobLocation(job.location ?? '');
-      const period = normalizeMonthAbbr(job.workPeriod ?? '');
+      const period = formatDatePeriod(job.workPeriod ?? '');
 
       if (idx > 0) paras.push(blankLine());
 

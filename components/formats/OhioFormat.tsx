@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { FiDownload, FiPrinter } from 'react-icons/fi';
 import type { ResumeData } from '@/lib/types';
 import {
-  stripBullet, normalizeMonthAbbr, splitBulletItems, splitProseToBullets,
+  stripBullet, formatDatePeriod, splitBulletItems, splitProseToBullets,
   sortEducation, formatEmploymentLocation, getEducationCountry, formatProjectParts,
 } from '@/formatters/shared/utils';
 import StateDownloadDialog from './StateDownloadDialog';
@@ -136,7 +136,12 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
             {/* Header */}
             <header className="border-b-2 border-blue-600 pb-6 mb-6">
               <h1 className="text-4xl font-bold text-center mb-3 text-blue-900">{resumeData.name || 'Full Name'}</h1>
-              <p className="text-xl text-center text-blue-600 mb-4 font-medium">{resumeData.title || 'Professional Title'}</p>
+              {/* Rendered only when the recruiter has entered one. The old
+                  `|| 'Professional Title'` printed a placeholder onto every
+                  resume that had none. */}
+              {resumeData.title && (
+                <p className="text-xl text-center text-blue-600 mb-4 font-medium">{resumeData.title}</p>
+              )}
               {resumeData.requisitionNumber && (
                 <p className="text-center text-gray-600 bg-gray-50 py-2 px-4 rounded-lg inline-block">
                   <span className="font-medium">Requisition Number:</span> {resumeData.requisitionNumber}
@@ -195,7 +200,7 @@ const OhioFormat = React.forwardRef<HTMLDivElement, GeneratedResumeProps>(
                 {resumeData.employmentHistory!.map((job, i) => {
                   const loc = formatEmploymentLocation(job.location ?? '');
                   const dept = (job.department ?? job.subRole ?? '').trim();
-                  const period = normalizeMonthAbbr(job.workPeriod ?? '');
+                  const period = formatDatePeriod(job.workPeriod ?? '');
                   return (
                     <div key={i} className="mb-6">
                       {(job.companyName || period) && (

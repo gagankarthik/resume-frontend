@@ -1,12 +1,13 @@
 import { Paragraph, TextRun, AlignmentType, LineRuleType } from 'docx';
 import type { ResumeData } from '@/lib/types';
-import { stripBullet, normalizeMonthAbbr, BODY_SPACING, RIGHT_TAB } from './shared';
+import { stripBullet, BODY_SPACING, RIGHT_TAB } from './shared';
 
 /**
  * Shared DOCX builder for the supplemental resume sections:
- * Awards, Publications, Languages, Volunteer Experience, Patents,
- * Professional Memberships, Conferences & Talks, Courses, Training,
- * Interests, References.
+ * Patents, Conferences & Talks, Courses, Training, References.
+ *
+ * Awards, publications, languages, volunteer experience, memberships and
+ * interests are not built — the engine no longer extracts them.
  *
  * Every format renders the SAME data through this builder (parameterized by
  * font / bullet-numbering reference / section-header factory) so no format
@@ -89,25 +90,6 @@ export function buildProjectsDocx(data: ResumeData, style: SupplementalStyle): P
 
 export function buildSupplementalDocx(data: ResumeData, style: SupplementalStyle): Paragraph[] {
   const { font, bulletRef, sectionHdr } = style;
-  const SP = { before: 0, after: 0, line: 240, lineRule: LineRuleType.AUTO } as const;
-
-  const plain = (text: string) =>
-    new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      spacing: SP,
-      children: [new TextRun({ text, font, size: 22 })],
-    });
-
-  const blankLine = () =>
-    new Paragraph({ spacing: { before: 0, after: 60, line: 240, lineRule: LineRuleType.AUTO }, children: [] });
-
-  const bullet = (text: string) =>
-    new Paragraph({
-      numbering: { reference: bulletRef, level: 0 },
-      alignment: AlignmentType.JUSTIFIED,
-      spacing: BODY_SPACING,
-      children: [new TextRun({ text: stripBullet(text), font, size: 22 })],
-    });
 
   const labeledBullet = (boldText: string, rest = '') =>
     new Paragraph({
@@ -130,59 +112,10 @@ export function buildSupplementalDocx(data: ResumeData, style: SupplementalStyle
   const suffix = (...parts: (string | false | undefined | null)[]) =>
     parts.filter(Boolean).join('');
 
-  section('Awards & Honors', (data.awards ?? []).map(a =>
-    labeledBullet(a.title ?? '', suffix(
-      a.issuer && ` — ${a.issuer}`,
-      a.date && ` (${a.date})`,
-      a.description && ` · ${a.description}`,
-    )),
-  ));
-
-  section('Publications', (data.publications ?? []).map(p =>
-    labeledBullet(p.title ?? '', suffix(
-      (p.journal ?? p.publisher) && ` — ${p.journal ?? p.publisher}`,
-      p.date && ` (${p.date})`,
-    )),
-  ));
-
-  const langs = (data.languagesSpoken ?? [])
-    .map(l => (l.proficiency ? `${l.language} (${l.proficiency})` : l.language))
-    .filter(Boolean)
-    .join(', ');
-  section('Languages', langs ? [plain(langs)] : []);
-
-  const vol: Paragraph[] = [];
-  (data.volunteerExperience ?? []).forEach((v, i) => {
-    if (i > 0) vol.push(blankLine());
-    vol.push(
-      new Paragraph({
-        tabStops: [RIGHT_TAB],
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: SP,
-        children: [
-          new TextRun({ text: [v.organization, v.role].filter(Boolean).join(' — '), bold: true, size: 22, font }),
-          ...(v.period
-            ? [new TextRun({ text: '\t' }), new TextRun({ text: normalizeMonthAbbr(v.period), size: 22, font })]
-            : []),
-        ],
-      }),
-    );
-    if (v.description) vol.push(plain(v.description));
-    (v.responsibilities ?? []).filter(r => r?.trim()).forEach(r => vol.push(bullet(r)));
-  });
-  section('Volunteer Experience', vol);
-
   section('Patents', (data.patents ?? []).map(p =>
     labeledBullet(p.title ?? '', suffix(
       p.patentNumber && ` — ${p.patentNumber}`,
       p.date && ` (${p.date})`,
-    )),
-  ));
-
-  section('Professional Memberships', (data.memberships ?? []).map(m =>
-    labeledBullet(m.organization ?? '', suffix(
-      m.role && ` — ${m.role}`,
-      m.period && ` (${normalizeMonthAbbr(m.period)})`,
     )),
   ));
 
@@ -206,8 +139,6 @@ export function buildSupplementalDocx(data: ResumeData, style: SupplementalStyle
       t.date && ` (${t.date})`,
     )),
   ));
-
-  section('Interests', data.interests?.length ? [plain(data.interests.join(', '))] : []);
 
   section('References', (data.references ?? []).map(r =>
     labeledBullet(r.name ?? '', suffix(

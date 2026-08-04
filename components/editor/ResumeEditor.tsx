@@ -9,7 +9,6 @@ import EducationEditor from './sections/EducationEditor';
 import SkillsEditor from './sections/SkillsEditor';
 import CertificationsEditor from './sections/CertificationsEditor';
 import ProjectsEditor from './sections/ProjectsEditor';
-import MoreSectionsEditor from './sections/MoreSectionsEditor';
 import { Button } from '@/components/ui/Button';
 import { IconAlert, IconArrowLeft, IconArrowRight, IconDownload } from '@/components/ui/icons';
 
@@ -49,8 +48,7 @@ type SectionId =
   | 'education'
   | 'skills'
   | 'certifications'
-  | 'projects'
-  | 'more';
+  | 'projects';
 
 const SECTIONS: {
   id: SectionId;
@@ -65,7 +63,6 @@ const SECTIONS: {
   { id: 'skills',         label: 'Skills',          short: 'Skills' },
   { id: 'certifications', label: 'Certifications',  short: 'Certs',       count: d => d.certifications?.length ?? 0 },
   { id: 'projects',       label: 'Projects',        short: 'Projects',    count: d => d.projects?.length ?? 0 },
-  { id: 'more',           label: 'More sections',   short: 'More' },
 ];
 
 /**
@@ -179,7 +176,6 @@ export default function ResumeEditor({
       case 'skills':         return <SkillsEditor data={data} onChange={onChange} />;
       case 'certifications': return <CertificationsEditor data={data} onChange={onChange} />;
       case 'projects':       return <ProjectsEditor data={data} onChange={onChange} />;
-      case 'more':           return <MoreSectionsEditor data={data} onChange={onChange} />;
     }
   };
 

@@ -1,5 +1,4 @@
-import { LineRuleType, TabStopType, HeightRule, AlignmentType, WidthType, ShadingType, VerticalAlign, BorderStyle } from 'docx';
-import type { ResumeData } from '@/lib/types';
+import { LineRuleType, TabStopType, BorderStyle } from 'docx';
 
 // ── String helpers ─────────────────────────────────────────────────────────
 
@@ -31,22 +30,44 @@ export function groupResponsibilities(items: string[]): string[] {
   return result;
 }
 
+// ── Date formatting ────────────────────────────────────────────────────────
+
+const MONTH_ABBREVIATIONS: Record<string, string> = {
+  jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr', may: 'May', jun: 'Jun',
+  jul: 'Jul', aug: 'Aug', sep: 'Sep', oct: 'Oct', nov: 'Nov', dec: 'Dec',
+};
+
+/**
+ * Every spelling of a month a resume might use, with an optional trailing dot.
+ * The odd ones matter: "Sept", "Sept.", "Octo" and "JULY" all reach this from
+ * real documents, and each used to survive one of the two implementations this
+ * replaces.
+ */
+const MONTH_PATTERN =
+  /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sept(?:ember)?|sep|oct(?:ober|o)?|nov(?:ember)?|dec(?:ember)?)\b\.?/gi;
+
+/**
+ * Month names to the three-letter form: "July" / "JULY" / "Jul." → "Jul".
+ *
+ * Always exactly three letters in title case, whatever the source wrote —
+ * that consistency is the point, since these land in date columns that read
+ * as ragged otherwise. Only the month token is touched; years, separators and
+ * everything around them are left alone.
+ */
 export const normalizeMonthAbbr = (s = '') => {
   if (typeof s !== 'string') return s;
-  const map: Record<string, string> = {
-    january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr',
-    june: 'Jun', july: 'Jul', august: 'Aug',
-    september: 'Sep', october: 'Oct', november: 'Nov', december: 'Dec',
-    sept: 'Sep', octo: 'Oct',
-  };
-  return s
-    .replace(
-      /\b(january|february|march|april|june|july|august|september|october|november|december|sept|octo)\b/gi,
-      m => map[m.toLowerCase()] || m,
-    )
-    // Date ranges always use an en dash with spaces, never a bare hyphen.
-    .replace(/\s*[-‐‑–—]+\s*/g, ' – ');
+  return s.replace(MONTH_PATTERN, month => {
+    const key = month.toLowerCase().replace(/\.$/, '').slice(0, 3);
+    return MONTH_ABBREVIATIONS[key] ?? month;
+  });
 };
+
+/** Date ranges always use an en dash with spaces, never a bare hyphen. */
+export const normalizeDateSeparator = (s = '') =>
+  typeof s === 'string' ? s.replace(/\s*[-‐‑–—]+\s*/g, ' – ') : s;
+
+/** A full date range: three-letter months, en-dash separator. */
+export const formatDatePeriod = (s = '') => normalizeDateSeparator(normalizeMonthAbbr(s));
 
 export const splitBulletItems = (t = '') => {
   if (!t || typeof t !== 'string') return [t];
@@ -73,38 +94,18 @@ export const splitBulletItems = (t = '') => {
 const splitOnGlyph = (s: string): string[] =>
   s.split(/\s*[•●▪‣◦⁃∙]\s*/).map(p => p.trim()).filter(Boolean);
 
-// Prose paragraph → bullet list. First applies the structured splitters (newlines /
-// glyphs / |), then sentence-splits only genuinely long prose blocks so a real
-// paragraph doesn't render as one mega-bullet. Bullets of typical length are kept
-// whole — splitting them chops sentences that belong together.
-const ABBREVS = /\b(?:Mr|Mrs|Ms|Dr|Sr|Jr|Inc|Ltd|Co|Corp|St|vs|etc|e\.g|i\.e|U\.S|U\.K|Ph\.D)\.$/i;
-
-const SENTENCE_SPLIT_MIN = 300;
-
-function sentenceSplit(text = ''): string[] {
-  const t = text.replace(/\s+/g, ' ').trim();
-  if (t.length < SENTENCE_SPLIT_MIN) return [t];
-
-  const parts: string[] = [];
-  let buf = '';
-  const tokens = t.split(/(?<=[.!?])\s+(?=[A-Z(0-9])/);
-  for (const tok of tokens) {
-    if (ABBREVS.test(buf)) {
-      buf = `${buf} ${tok}`;
-      continue;
-    }
-    if (buf) parts.push(buf.trim());
-    buf = tok;
-  }
-  if (buf) parts.push(buf.trim());
-
-  const cleaned = parts.filter(Boolean);
-  return cleaned.length > 1 ? cleaned : [t];
-}
-
+/**
+ * Prose-or-bulleted input → bullet list, using ONLY the separators the source
+ * itself wrote: newlines, bullet glyphs, and the legacy " | ".
+ *
+ * A sentence-splitting pass used to run here, chopping any block over 300
+ * characters into one bullet per sentence. It changed the count — one long
+ * responsibility became four bullets the candidate never wrote as a list — so
+ * it is gone. One source item stays one item.
+ */
 export const splitProseToBullets = (s = ''): string[] => {
   if (!s) return [];
-  return splitBulletItems(s).flatMap(sentenceSplit).filter(Boolean);
+  return splitBulletItems(s).filter(Boolean);
 };
 
 // ── Education sorting ──────────────────────────────────────────────────────

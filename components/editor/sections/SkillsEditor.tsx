@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { FiX, FiPlus } from 'react-icons/fi';
+import { FiX } from 'react-icons/fi';
 import type { APIResponse, Skills } from '@/lib/types';
 
 interface Props { data: APIResponse; onChange: (data: APIResponse) => void; }

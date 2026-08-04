@@ -3,13 +3,13 @@
 import React from 'react';
 import type { ResumeData } from '@/lib/types';
 import { stripBullet } from '@/lib/docx/shared';
-import { splitProseToBullets } from '@/formatters/shared/utils';
 
 /**
  * Shared preview renderer for the supplemental resume sections:
- * Awards, Publications, Languages, Volunteer Experience, Patents,
- * Professional Memberships, Conferences & Talks, Courses, Training,
- * Interests, References.
+ * Patents, Conferences & Talks, Courses, Training, References.
+ *
+ * Awards, publications, languages, volunteer experience, memberships and
+ * interests are not rendered — the engine no longer extracts them.
  *
  * Used by every format preview so none of them silently hides information
  * the backend extracted. Styling is parameterized to match the host format.
@@ -27,79 +27,6 @@ const SupplementalSections: React.FC<Props> = ({ data, text, subtext, Header }) 
 
   return (
     <>
-      {/* Awards & Honors */}
-      {(data.awards?.length ?? 0) > 0 && (
-        <section style={{ marginBottom: 16 }}>
-          <Header label="Awards & Honors" />
-          <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
-            {data.awards!.map((a, i) => (
-              <li key={i} style={li}>
-                <span style={bold}>{a.title}</span>
-                {a.issuer ? ` — ${a.issuer}` : ''}
-                {a.date ? ` (${a.date})` : ''}
-                {a.description ? ` · ${a.description}` : ''}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Publications */}
-      {(data.publications?.length ?? 0) > 0 && (
-        <section style={{ marginBottom: 16 }}>
-          <Header label="Publications" />
-          <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
-            {data.publications!.map((p, i) => (
-              <li key={i} style={li}>
-                <span style={bold}>{p.title}</span>
-                {p.journal || p.publisher ? ` — ${p.journal ?? p.publisher}` : ''}
-                {p.date ? ` (${p.date})` : ''}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Languages */}
-      {(data.languagesSpoken?.length ?? 0) > 0 && (
-        <section style={{ marginBottom: 16 }}>
-          <Header label="Languages" />
-          <p style={{ margin: 0, fontSize: 12, color: subtext, lineHeight: 1.5 }}>
-            {data.languagesSpoken!
-              .map(l => (l.proficiency ? `${l.language} (${l.proficiency})` : l.language))
-              .filter(Boolean)
-              .join(', ')}
-          </p>
-        </section>
-      )}
-
-      {/* Volunteer Experience */}
-      {(data.volunteerExperience?.length ?? 0) > 0 && (
-        <section style={{ marginBottom: 16 }}>
-          <Header label="Volunteer Experience" />
-          {data.volunteerExperience!.map((v, i) => (
-            <div key={i} style={{ marginBottom: i < data.volunteerExperience!.length - 1 ? 8 : 0 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ ...bold, fontSize: 12 }}>
-                  {v.organization}{v.role ? ` — ${v.role}` : ''}
-                </span>
-                {v.period && <span style={{ fontSize: 11, color: subtext, whiteSpace: 'nowrap', marginLeft: 10 }}>{v.period}</span>}
-              </div>
-              {v.description && (
-                <p style={{ margin: '1px 0 0', fontSize: 12, color: subtext, lineHeight: 1.5 }}>{v.description}</p>
-              )}
-              {(v.responsibilities?.length ?? 0) > 0 && (
-                <ul style={{ margin: '2px 0 0 16px', padding: 0, listStyleType: 'disc' }}>
-                  {v.responsibilities!.flatMap(splitProseToBullets).map((r, j) => (
-                    <li key={j} style={li}>{stripBullet(r)}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
       {/* Patents */}
       {(data.patents?.length ?? 0) > 0 && (
         <section style={{ marginBottom: 16 }}>
@@ -110,22 +37,6 @@ const SupplementalSections: React.FC<Props> = ({ data, text, subtext, Header }) 
                 <span style={bold}>{p.title}</span>
                 {p.patentNumber ? ` — ${p.patentNumber}` : ''}
                 {p.date ? ` (${p.date})` : ''}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* Professional Memberships */}
-      {(data.memberships?.length ?? 0) > 0 && (
-        <section style={{ marginBottom: 16 }}>
-          <Header label="Professional Memberships" />
-          <ul style={{ margin: 0, padding: '0 0 0 16px', listStyleType: 'disc' }}>
-            {data.memberships!.map((m, i) => (
-              <li key={i} style={li}>
-                <span style={bold}>{m.organization}</span>
-                {m.role ? ` — ${m.role}` : ''}
-                {m.period ? ` (${m.period})` : ''}
               </li>
             ))}
           </ul>
@@ -177,16 +88,6 @@ const SupplementalSections: React.FC<Props> = ({ data, text, subtext, Header }) 
               </li>
             ))}
           </ul>
-        </section>
-      )}
-
-      {/* Interests */}
-      {(data.interests?.length ?? 0) > 0 && (
-        <section style={{ marginBottom: 16 }}>
-          <Header label="Interests" />
-          <p style={{ margin: 0, fontSize: 12, color: subtext, lineHeight: 1.5 }}>
-            {data.interests!.join(', ')}
-          </p>
         </section>
       )}
 

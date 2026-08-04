@@ -25,7 +25,8 @@ export interface PersonalInformation {
   nationality?: string;
   gender?: string;
   marital_status?: string;
-  profile_headline?: string;
+  // Both of these are entered by the recruiter, never parsed from the resume.
+  title_role?: string;
   requisition_number?: string;
 }
 
@@ -100,7 +101,6 @@ export interface Skills {
   methodologies?: string[];
   domain_skills?: string[];
   design_skills?: string[];
-  languages_spoken?: string[];
   other_skills?: string[];
   // Free-form passthrough: when the backend extracts the resume's original skill
   // section names (e.g. "Cloud Datawarehouse", "Data Modeling Tool"), it can return
@@ -301,14 +301,8 @@ export interface APIResponse {
   skills?: Skills;
   certifications?: Certification[];
   projects?: Project[];
-  publications?: Publication[];
-  awards_and_honors?: Award[];
-  volunteer_experience?: VolunteerExperience[];
-  languages?: Language[];
-  interests_and_hobbies?: string[];
   references?: Reference[];
   patents?: Patent[];
-  professional_memberships?: Membership[];
   conferences_and_talks?: Conference[];
   courses?: Course[];
   training?: Training[];
@@ -391,47 +385,11 @@ export interface SimpleProject {
   date?: string;
 }
 
-export interface AwardEntry {
-  title?: string;
-  issuer?: string;
-  date?: string;
-  description?: string;
-}
-
-export interface PublicationEntry {
-  title?: string;
-  publisher?: string;
-  journal?: string;
-  date?: string;
-  url?: string;
-  description?: string;
-}
-
-export interface LanguageEntry {
-  language?: string;
-  proficiency?: string;
-}
-
-export interface VolunteerEntry {
-  organization?: string;
-  role?: string;
-  period?: string;
-  location?: string;
-  description?: string;
-  responsibilities?: string[];
-}
-
 export interface PatentEntry {
   title?: string;
   patentNumber?: string;
   date?: string;
   description?: string;
-}
-
-export interface MembershipEntry {
-  organization?: string;
-  role?: string;
-  period?: string;
 }
 
 export interface ConferenceEntry {
@@ -486,15 +444,9 @@ export interface ResumeData {
   technicalSkills?: Record<string, string[] | string>;
   skillCategories?: SkillCategory[];
   // supplemental sections (rendered only if the resume actually contains them)
-  awards?: AwardEntry[];
-  publications?: PublicationEntry[];
-  languagesSpoken?: LanguageEntry[];
-  volunteerExperience?: VolunteerEntry[];
   patents?: PatentEntry[];
-  memberships?: MembershipEntry[];
   conferences?: ConferenceEntry[];
   courses?: CourseEntry[];
   training?: TrainingEntry[];
-  interests?: string[];
   references?: ReferenceEntry[];
 }

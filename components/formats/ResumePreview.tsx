@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { ResumeData } from '@/lib/types';
-import { stripBullet, normalizeMonthAbbr, sortEducation, getEdLocation, formatLocation, groupResponsibilities, projectTitleWithClient, awardedLabel } from '@/lib/docx/shared';
+import { stripBullet, formatDatePeriod, sortEducation, getEdLocation, formatLocation, groupResponsibilities, projectTitleWithClient, awardedLabel } from '@/lib/docx/shared';
 import { splitProseToBullets } from '@/formatters/shared/utils';
 import OceanblueFormat from './OceanblueFormat';
 import GeorgiaFormat from './GeorgiaFormat';
@@ -122,7 +122,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
               <SectionHeader label="Employment History" />
               {resumeData.employmentHistory!.map((job, i) => {
                 const loc = resolveLocation(job.location ?? '');
-                const period = normalizeMonthAbbr(job.workPeriod ?? '');
+                const period = formatDatePeriod(job.workPeriod ?? '');
                 const dept = (job.department ?? '').trim();
                 const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
                 const mainResps = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
