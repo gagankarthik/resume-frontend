@@ -1,6 +1,7 @@
 import { Paragraph, TextRun, AlignmentType, LineRuleType } from 'docx';
 import type { ResumeData } from '@/lib/types';
-import { stripBullet, BODY_SPACING, RIGHT_TAB } from './shared';
+import { stripBullet, text, textList, objList, BODY_SPACING, RIGHT_TAB } from './shared';
+import type { SimpleProject, PatentEntry, ConferenceEntry, CourseEntry, TrainingEntry, ReferenceEntry } from '@/lib/types';
 
 /**
  * Shared DOCX builder for the supplemental resume sections:
@@ -25,9 +26,10 @@ export function buildProjectsDocx(data: ResumeData, style: SupplementalStyle): P
   const { font, bulletRef } = style;
   const SP = { before: 0, after: 0, line: 240, lineRule: LineRuleType.AUTO } as const;
   const paras: Paragraph[] = [];
-  if (!data.projects?.length) return paras;
+  const projects = objList<SimpleProject>(data.projects);
+  if (!projects.length) return paras;
 
-  data.projects.forEach((proj, idx) => {
+  projects.forEach((proj, idx) => {
     if (idx > 0) {
       paras.push(new Paragraph({ spacing: { before: 0, after: 60, line: 240, lineRule: LineRuleType.AUTO }, children: [] }));
     }
@@ -37,31 +39,31 @@ export function buildProjectsDocx(data: ResumeData, style: SupplementalStyle): P
         alignment: AlignmentType.JUSTIFIED,
         spacing: SP,
         children: [
-          new TextRun({ text: proj.name ?? '', bold: true, size: 24, font }),
-          ...(proj.date
-            ? [new TextRun({ text: '\t' }), new TextRun({ text: proj.date, size: 22, font })]
+          new TextRun({ text: text(proj.name), bold: true, size: 24, font }),
+          ...(text(proj.date).trim()
+            ? [new TextRun({ text: '\t' }), new TextRun({ text: text(proj.date), size: 22, font })]
             : []),
         ],
       }),
     );
-    if (proj.role) {
+    if (text(proj.role).trim()) {
       paras.push(
         new Paragraph({
           spacing: SP,
-          children: [new TextRun({ text: proj.role, italics: true, size: 22, font })],
+          children: [new TextRun({ text: text(proj.role), italics: true, size: 22, font })],
         }),
       );
     }
-    if (proj.description) {
+    if (text(proj.description).trim()) {
       paras.push(
         new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           spacing: SP,
-          children: [new TextRun({ text: proj.description, size: 22, font })],
+          children: [new TextRun({ text: text(proj.description), size: 22, font })],
         }),
       );
     }
-    (proj.highlights ?? []).filter(h => h?.trim()).forEach(h =>
+    textList(proj.highlights).forEach(h =>
       paras.push(
         new Paragraph({
           numbering: { reference: bulletRef, level: 0 },
@@ -71,14 +73,15 @@ export function buildProjectsDocx(data: ResumeData, style: SupplementalStyle): P
         }),
       ),
     );
-    if ((proj.technologies ?? []).length) {
+    const tech = textList(proj.technologies);
+    if (tech.length) {
       paras.push(
         new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           spacing: SP,
           children: [
             new TextRun({ text: 'Technologies: ', bold: true, size: 20, font }),
-            new TextRun({ text: proj.technologies!.join(', '), size: 20, font }),
+            new TextRun({ text: tech.join(', '), size: 20, font }),
           ],
         }),
       );
@@ -109,43 +112,47 @@ export function buildSupplementalDocx(data: ResumeData, style: SupplementalStyle
       out.push(...paras);
     }
   };
-  const suffix = (...parts: (string | false | undefined | null)[]) =>
-    parts.filter(Boolean).join('');
+  /** A trailing detail, included only when it has one. */
+  const part = (v: unknown, wrap: (s: string) => string) => {
+    const s = text(v).trim();
+    return s ? wrap(s) : '';
+  };
+  const suffix = (...parts: string[]) => parts.join('');
 
-  section('Patents', (data.patents ?? []).map(p =>
-    labeledBullet(p.title ?? '', suffix(
-      p.patentNumber && ` — ${p.patentNumber}`,
-      p.date && ` (${p.date})`,
+  section('Patents', objList<PatentEntry>(data.patents).map(p =>
+    labeledBullet(text(p.title), suffix(
+      part(p.patentNumber, s => ` — ${s}`),
+      part(p.date, s => ` (${s})`),
     )),
   ));
 
-  section('Conferences & Talks', (data.conferences ?? []).map(c =>
-    labeledBullet(c.title ?? '', suffix(
-      c.event && ` — ${c.event}`,
-      c.date && ` (${c.date})`,
+  section('Conferences & Talks', objList<ConferenceEntry>(data.conferences).map(c =>
+    labeledBullet(text(c.title), suffix(
+      part(c.event, s => ` — ${s}`),
+      part(c.date, s => ` (${s})`),
     )),
   ));
 
-  section('Courses', (data.courses ?? []).map(c =>
-    labeledBullet(c.name ?? '', suffix(
-      c.provider && ` — ${c.provider}`,
-      c.date && ` (${c.date})`,
+  section('Courses', objList<CourseEntry>(data.courses).map(c =>
+    labeledBullet(text(c.name), suffix(
+      part(c.provider, s => ` — ${s}`),
+      part(c.date, s => ` (${s})`),
     )),
   ));
 
-  section('Training', (data.training ?? []).map(t =>
-    labeledBullet(t.name ?? '', suffix(
-      t.provider && ` — ${t.provider}`,
-      t.date && ` (${t.date})`,
+  section('Training', objList<TrainingEntry>(data.training).map(t =>
+    labeledBullet(text(t.name), suffix(
+      part(t.provider, s => ` — ${s}`),
+      part(t.date, s => ` (${s})`),
     )),
   ));
 
-  section('References', (data.references ?? []).map(r =>
-    labeledBullet(r.name ?? '', suffix(
-      r.title && ` — ${r.title}`,
-      r.company && `, ${r.company}`,
-      r.email && ` · ${r.email}`,
-      r.phone && ` · ${r.phone}`,
+  section('References', objList<ReferenceEntry>(data.references).map(r =>
+    labeledBullet(text(r.name), suffix(
+      part(r.title, s => ` — ${s}`),
+      part(r.company, s => `, ${s}`),
+      part(r.email, s => ` · ${s}`),
+      part(r.phone, s => ` · ${s}`),
     )),
   ));
 

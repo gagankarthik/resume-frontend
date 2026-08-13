@@ -1,33 +1,111 @@
 import { LineRuleType, TabStopType, BorderStyle } from 'docx';
+import type { OhioEducationEntry } from '@/lib/types';
+
+// ── Input coercion ─────────────────────────────────────────────────────────
+
+/**
+ * Anything → the text it should print as.
+ *
+ * The builders receive a `ResumeData`, but the shape is only a promise: the
+ * record travels through localStorage, through an editor that can add and
+ * clear rows, and through passthrough fields (a job's `projects` and
+ * `subsections`) that the engine hands over exactly as the model wrote them,
+ * with no schema between. So a value typed `string` arrives as null, as a
+ * number, or as a nested array often enough to matter.
+ *
+ * It mattered a lot: `.trim()` on one of those threw, the throw escaped the
+ * builder, and the recruiter got "The document could not be built. Try again."
+ * with no file and nothing to act on. Every value that reaches a TextRun goes
+ * through here first, so a bad field costs its own text and nothing else.
+ */
+export function text(v: unknown): string {
+  if (typeof v === 'string') return v;
+  if (v == null) return '';
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : '';
+  if (typeof v === 'boolean') return String(v);
+  // A nested list is a list of bullets the model flattened one level too deep.
+  if (Array.isArray(v)) return v.map(text).filter(Boolean).join(' ');
+  return '';
+}
+
+/** Anything → an array of printable strings, blanks dropped. */
+export function textList(v: unknown): string[] {
+  if (v == null) return [];
+  const items = Array.isArray(v) ? v : [v];
+  return items.flatMap(item => {
+    // Keep a nested list's items separate: they are separate bullets.
+    if (Array.isArray(item)) return textList(item);
+    const s = text(item).trim();
+    return s ? [s] : [];
+  });
+}
+
+/** Anything → an array of objects safe to read properties off. */
+export function objList<T>(v: unknown): T[] {
+  return Array.isArray(v)
+    ? (v.filter(item => item != null && typeof item === 'object') as T[])
+    : [];
+}
+
+/**
+ * Run a section builder, and give up only that section if it throws.
+ *
+ * A resume export is not all-or-nothing: a recruiter would far rather have the
+ * document with one section marked as unrenderable than no document at all.
+ */
+export function safely<T>(build: () => T[], fallback: (e: unknown) => T[]): T[] {
+  try {
+    return build();
+  } catch (e) {
+     
+    console.error('resume section could not be rendered', e);
+    return fallback(e);
+  }
+}
 
 // ── String helpers ─────────────────────────────────────────────────────────
 
-export const stripBullet = (t = '') =>
-  t.replace(/^[•●◦‣⁃∙·○▪▸\-–—*]\s*/, '').trim();
+export const stripBullet = (t: unknown = '') =>
+  text(t).replace(/^[•●◦‣⁃∙·○▪▸\-–—*]\s*/, '').trim();
 
-// Groups consecutive sub-bullets (○ ◦ ▹ ▸ ‣) into a single comma-joined string.
-// Main bullets (● • - *) stay as individual items.
-export function groupResponsibilities(items: string[]): string[] {
+/** One responsibility line, and how deeply the source indented it. */
+export interface RespItem {
+  text: string;
+  /** 0 for a main bullet (● • - *), 1 for a sub-bullet (○ ◦ ▹ ▸ ‣). */
+  level: 0 | 1;
+}
+
+/**
+ * Responsibility lines → the bullets that should be rendered, in order.
+ *
+ * The one definition of "how many bullets does this become", shared by the
+ * four DOCX builders and the three previews. When each carried its own, the
+ * preview and the file disagreed about it — which is how a bullet list on
+ * screen became a comma-spliced paragraph in the document that was submitted.
+ */
+export function responsibilityBullets(items: unknown): RespItem[] {
+  return groupResponsibilities(items).flatMap(item =>
+    splitProseToBullets(item.text).map(t => ({ text: stripBullet(t), level: item.level })),
+  );
+}
+
+/**
+ * Responsibility lines → bullets, keeping the source's own nesting.
+ *
+ * Consecutive sub-bullets used to be joined into one comma-separated string,
+ * which turned a nested list the candidate wrote into a run-on sentence. The
+ * templates now define a second bullet level, so a sub-bullet renders as an
+ * indented bullet and one source line stays one line.
+ */
+export function groupResponsibilities(items: unknown): RespItem[] {
   const SUB_RE = /^[○◦▹▸‣·]\s*/;
-  const result: string[] = [];
-  let sub: string[] = [];
-
-  const flush = () => {
-    if (sub.length) { result.push(sub.join(', ')); sub = []; }
-  };
-
-  for (const raw of items) {
+  return textList(items).flatMap((raw): RespItem[] => {
     const t = raw.trim();
-    if (!t) continue;
-    if (SUB_RE.test(t)) {
-      sub.push(t.replace(SUB_RE, '').trim());
-    } else {
-      flush();
-      result.push(stripBullet(t));
-    }
-  }
-  flush();
-  return result;
+    if (!t) return [];
+    const level = SUB_RE.test(t) ? 1 : 0;
+    const body = level === 1 ? t.replace(SUB_RE, '').trim() : stripBullet(t);
+    return body ? [{ text: body, level }] : [];
+  });
 }
 
 // ── Date formatting ────────────────────────────────────────────────────────
@@ -54,23 +132,23 @@ const MONTH_PATTERN =
  * as ragged otherwise. Only the month token is touched; years, separators and
  * everything around them are left alone.
  */
-export const normalizeMonthAbbr = (s = '') => {
-  if (typeof s !== 'string') return s;
-  return s.replace(MONTH_PATTERN, month => {
+export const normalizeMonthAbbr = (s: unknown = '') => {
+  return text(s).replace(MONTH_PATTERN, month => {
     const key = month.toLowerCase().replace(/\.$/, '').slice(0, 3);
     return MONTH_ABBREVIATIONS[key] ?? month;
   });
 };
 
 /** Date ranges always use an en dash with spaces, never a bare hyphen. */
-export const normalizeDateSeparator = (s = '') =>
-  typeof s === 'string' ? s.replace(/\s*[-‐‑–—]+\s*/g, ' – ') : s;
+export const normalizeDateSeparator = (s: unknown = '') =>
+  text(s).replace(/\s*[-‐‑–—]+\s*/g, ' – ');
 
 /** A full date range: three-letter months, en-dash separator. */
-export const formatDatePeriod = (s = '') => normalizeDateSeparator(normalizeMonthAbbr(s));
+export const formatDatePeriod = (s: unknown = '') => normalizeDateSeparator(normalizeMonthAbbr(s));
 
-export const splitBulletItems = (t = '') => {
-  if (!t || typeof t !== 'string') return [t];
+export const splitBulletItems = (raw: unknown = ''): string[] => {
+  const t = text(raw);
+  if (!t) return [];
 
   // 1. Newline-separated bullets (preferred backend format).
   const lines = t.split(/\n/).map(s => s.trim()).filter(Boolean);
@@ -103,15 +181,13 @@ const splitOnGlyph = (s: string): string[] =>
  * responsibility became four bullets the candidate never wrote as a list — so
  * it is gone. One source item stays one item.
  */
-export const splitProseToBullets = (s = ''): string[] => {
-  if (!s) return [];
-  return splitBulletItems(s).filter(Boolean);
-};
+export const splitProseToBullets = (s: unknown = ''): string[] =>
+  splitBulletItems(s).filter(Boolean);
 
 // ── Education sorting ──────────────────────────────────────────────────────
 
-const normalizeDegree = (d = '') => d.toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
-const degreeRank = (d = '') => {
+const normalizeDegree = (d: unknown = '') => text(d).toUpperCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
+const degreeRank = (d: unknown = '') => {
   const n = normalizeDegree(d);
   const c = n.replace(/\s+/g, '');
   if (/\b(AA|AS|ASSOCIATE)\b/.test(n)) return 1;
@@ -121,8 +197,16 @@ const degreeRank = (d = '') => {
   return 5;
 };
 
-export const sortEducation = <T extends { degree?: string }>(arr: T[]): T[] =>
-  arr
+/**
+ * Education in qualification order: associate, bachelor, master, doctorate.
+ *
+ * The on-screen preview used to carry its own `sortEducation` that ordered by
+ * year, most recent first — the same name, the opposite order — so the preview
+ * showed the master's on top and the exported table showed the bachelor's. One
+ * implementation now serves both.
+ */
+export const sortEducation = <T extends { degree?: string } = OhioEducationEntry>(arr: unknown): T[] =>
+  objList<T>(arr)
     .map((e, i) => ({ e, i, r: degreeRank(e.degree) }))
     .sort((a, b) => a.r - b.r || a.i - b.i)
     .map(x => x.e);
@@ -167,8 +251,8 @@ function resolveUSStateAbbrev(seg = '') {
   return found ? found[1] : null;
 }
 
-export function formatLocation(loc = '') {
-  const raw = (typeof loc === 'string' ? loc : '').replace(/\s+/g, ' ').trim();
+export function formatLocation(loc: unknown = '') {
+  const raw = text(loc).replace(/\s+/g, ' ').trim();
   if (!raw) return '';
   const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
 
@@ -202,8 +286,8 @@ export function formatLocation(loc = '') {
   return meaningful.join(', ') || raw;
 }
 
-export function getEdLocation(loc = '') {
-  const raw = (typeof loc === 'string' ? loc : '').replace(/\s+/g, ' ').trim();
+export function getEdLocation(loc: unknown = '') {
+  const raw = text(loc).replace(/\s+/g, ' ').trim();
   if (!raw) return '';
   const parts = raw.split(',').map(p => p.trim()).filter(Boolean);
   if (parts.some(p => /\bindia\b/i.test(p))) return 'India';
@@ -216,13 +300,56 @@ export function getEdLocation(loc = '') {
   return parts[parts.length - 1] || raw;
 }
 
+/**
+ * A job's location, or nothing when the "location" is a working arrangement.
+ *
+ * "Remote" in the location column of a submission form reads as a place the
+ * candidate is, which it is not.
+ */
+const NOT_A_PLACE = /^(remote|work from home|wfh|hybrid|on-?site|n\/a)$/i;
+
+export function resolveJobLocation(raw: unknown): string {
+  const f = formatLocation(raw);
+  return NOT_A_PLACE.test(f.trim()) ? '' : f;
+}
+
+// ── Profile URLs ───────────────────────────────────────────────────────────
+
+/** "https://www.linkedin.com/in/jane-doe/" → "linkedin.com/in/jane-doe". */
+const shortenUrl = (host: string) => (url: unknown): string => {
+  const raw = text(url).trim();
+  if (!raw) return '';
+  try {
+    const u = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+    return `${host}${u.pathname.replace(/\/$/, '')}`;
+  } catch {
+    return raw;
+  }
+};
+
+export const shortenLinkedIn = shortenUrl('linkedin.com');
+export const shortenGitHub = shortenUrl('github.com');
+
+/** The contact line every format prints under the name, in one place. */
+export function contactLine(data: {
+  email?: string; phone?: string; linkedin?: string; github?: string; location?: string;
+}): string[] {
+  return [
+    text(data?.email).trim(),
+    text(data?.phone).trim(),
+    shortenLinkedIn(data?.linkedin),
+    shortenGitHub(data?.github),
+    text(data?.location).trim(),
+  ].filter(Boolean);
+}
+
 // ── Project title formatter ────────────────────────────────────────────────
 
 const MONTH_PAT = '(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
 
 export function formatProjectTitle(proj: Record<string, unknown>, idx: number, total: number) {
-  const rawName = (proj.projectName || proj.title || proj.name || proj.projectTitle || '') as string;
-  const rawLoc = (proj.projectLocation || '') as string;
+  const rawName = text(proj?.projectName || proj?.title || proj?.name || proj?.projectTitle);
+  const rawLoc = text(proj?.projectLocation);
   let clean = rawName.replace(/\s+/g, ' ').trim();
   clean = clean
     .replace(/^\s*project\s*\d*\s*[:\-–—]\s*/i, '')
@@ -288,8 +415,30 @@ function tidyTitleEdges(text: string): string {
  * is a claim the source document does not make.
  */
 export function awardedLabel(wasAwarded: boolean | undefined): string {
-  if (wasAwarded === undefined) return '-';
+  if (typeof wasAwarded !== 'boolean') return '-';
   return wasAwarded ? 'Yes' : 'No';
+}
+
+/**
+ * A project heading, with the client named only when that adds something.
+ *
+ * Naming the client is useful for consultancy work — "Project 2: Claims
+ * Modernisation — Client: State Farm" says who the work was for. It is noise
+ * when the client IS the employer, which is how an in-house project is
+ * extracted: the heading came out as "OAG - Order Gen — Client: Office of the
+ * Attorney General, State of Texas" directly underneath "Office of the
+ * Attorney General, State of Texas".
+ */
+export function projectHeading(
+  proj: { clientName?: string },
+  base: string,
+  employer: unknown = '',
+): string {
+  const client = text(proj?.clientName).trim();
+  if (!client) return base;
+  const seen = (s: string) => s.toLowerCase().includes(client.toLowerCase());
+  if (seen(base) || seen(text(employer))) return base;
+  return `${base} — Client: ${client}`;
 }
 
 // Sub-project display title including the client and location, which were
@@ -297,12 +446,11 @@ export function awardedLabel(wasAwarded: boolean | undefined): string {
 export function projectTitleWithClient(
   proj: { projectName?: string; clientName?: string; projectLocation?: string },
   fallback: string,
+  employer: unknown = '',
 ): string {
-  const name = (proj.projectName || fallback).trim();
-  const client = (proj.clientName ?? '').trim();
-  const loc = (proj.projectLocation ?? '').trim();
-  let title = name;
-  if (client && !name.toLowerCase().includes(client.toLowerCase())) title += ` — Client: ${client}`;
+  const name = (text(proj?.projectName).trim() || fallback).trim();
+  const loc = text(proj?.projectLocation).trim();
+  let title = projectHeading(proj ?? {}, name, employer);
   if (loc && !title.toLowerCase().includes(loc.toLowerCase())) title += ` (${loc})`;
   return title;
 }

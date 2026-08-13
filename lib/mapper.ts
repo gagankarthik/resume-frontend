@@ -13,7 +13,7 @@ import type {
   TrainingEntry,
   ReferenceEntry,
 } from './types';
-import { normalizeMonthAbbr } from './docx/shared';
+import { normalizeMonthAbbr, text, textList, objList } from './docx/shared';
 
 /** Every way a resume writes "this job is ongoing". */
 const ONGOING_END_DATE = /^(present|present day|current|currently|till\s*date|to\s*date|now|ongoing|date)$/i;
@@ -57,6 +57,46 @@ function formatName(pi?: APIResponse['personal_information']): string | undefine
     name = composed || name;
   }
   return name || undefined;
+}
+
+/** Comparable form of a bullet: case, punctuation and spacing removed. */
+const bulletKey = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * A job's responsibilities and achievements as one bullet list, without
+ * printing anything twice.
+ *
+ * The engine is not always given a clean split between the two, and when it
+ * is not it tends to return achievements that repeat responsibilities — either
+ * verbatim, or as the measurable clause lifted out of one. A submitted resume
+ * showed both: four bullets repeated word for word, and four more that were
+ * fragments of bullets already above them ("reducing manual testing effort by
+ * an estimated 30%"). An achievement is dropped when its text already appears
+ * in a responsibility; one that says something new is kept.
+ */
+function mergeBullets(responsibilities?: string[], achievements?: string[]): string[] {
+  const kept: string[] = [];
+  const seen = new Set<string>();
+
+  const add = (items: string[] | undefined, dedupeAgainstSubstrings: boolean) => {
+    for (const raw of items ?? []) {
+      if (typeof raw !== 'string') continue;
+      const item = raw.trim();
+      if (!item) continue;
+      const key = bulletKey(item);
+      if (!key || seen.has(key)) continue;
+      // An achievement that is a clause of a bullet already printed is the
+      // same claim, made twice.
+      if (dedupeAgainstSubstrings && kept.some(k => bulletKey(k).includes(key))) continue;
+      seen.add(key);
+      kept.push(item);
+    }
+  };
+
+  add(responsibilities, false);
+  add(achievements, true);
+  return kept;
 }
 
 export function mapToResumeData(api: APIResponse): ResumeData {
@@ -105,10 +145,7 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     // Combine bullets from responsibilities + achievements. `description` is
     // intentionally NOT promoted into the bullet list — if the parser only
     // returned prose narrative, the job renders without a Responsibilities block.
-    const responsibilities = [
-      ...(w.responsibilities ?? []),
-      ...(w.achievements ?? []),
-    ].filter(r => r && r.trim());
+    const responsibilities = mergeBullets(w.responsibilities, w.achievements);
 
     return {
       companyName: w.company_name,
@@ -148,15 +185,17 @@ export function mapToResumeData(api: APIResponse): ResumeData {
     const cats: SkillCategory[] = [];
 
     const addCat = (name: string, arr?: string[]) => {
-      if (!arr || arr.length === 0) return;
-      const clean = arr.map(s => s.trim()).filter(Boolean);
-      if (clean.length > 0) cats.push({ categoryName: name, skills: clean });
+      const clean = textList(arr);
+      // A category the recruiter has added but not yet named still renders,
+      // under the generic label, rather than as a bare colon.
+      if (clean.length > 0) cats.push({ categoryName: name.trim() || 'Skills', skills: clean });
     };
 
     // Prefer the free-form `categories` passthrough when the backend supplies it —
     // that preserves the resume's original section names (e.g. "Cloud Datawarehouse").
     if (Array.isArray(skills.categories) && skills.categories.length > 0) {
-      skills.categories.forEach(c => addCat(c?.name ?? 'Skills', c?.skills));
+      objList<{ name?: string; skills?: string[] }>(skills.categories)
+        .forEach(c => addCat(text(c.name), c.skills));
     }
 
     // If verbatim categories produced nothing usable (missing, empty arrays, or
@@ -182,8 +221,8 @@ export function mapToResumeData(api: APIResponse): ResumeData {
       // Last-resort flat fallbacks so SOMETHING shows when the LLM puts everything
       // in a single union field instead of per-category arrays.
       const flat =
-        (skills.all_skills_raw && skills.all_skills_raw.length > 0 && skills.all_skills_raw) ||
-        (skills.technical_skills && skills.technical_skills.length > 0 && skills.technical_skills) ||
+        textList(skills.all_skills_raw).length ? textList(skills.all_skills_raw) :
+        textList(skills.technical_skills).length ? textList(skills.technical_skills) :
         null;
       if (flat) technicalSkills = { 'Skills': flat };
     }

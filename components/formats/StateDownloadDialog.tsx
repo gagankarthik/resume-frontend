@@ -66,7 +66,10 @@ export default function StateDownloadDialog({
       else await docx.buildGeorgiaDocx(resumeData);
     } catch (e) {
       console.error('DOCX generation failed', e);
-      setError('The document could not be built. Try again.');
+      // "Try again" was the whole message, and trying again did the same
+      // thing. Say what failed, so it can be reported or worked around.
+      const detail = e instanceof Error && e.message ? ` (${e.message})` : '';
+      setError(`The ${selected} document could not be built${detail}. Print or PDF still works.`);
     } finally {
       setDownloading(false);
     }

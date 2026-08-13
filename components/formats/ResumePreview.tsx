@@ -2,17 +2,45 @@
 
 import React from 'react';
 import type { ResumeData } from '@/lib/types';
-import { stripBullet, formatDatePeriod, sortEducation, getEdLocation, formatLocation, groupResponsibilities, projectTitleWithClient, awardedLabel } from '@/lib/docx/shared';
-import { splitProseToBullets } from '@/formatters/shared/utils';
+import {
+  stripBullet, formatDatePeriod, sortEducation, getEdLocation, awardedLabel,
+  splitProseToBullets, responsibilityBullets, projectTitleWithClient,
+  resolveJobLocation, textList, objList,
+} from '@/lib/docx/shared';
 import OceanblueFormat from './OceanblueFormat';
 import GeorgiaFormat from './GeorgiaFormat';
 import SupplementalSections from './SupplementalSections';
 
-// Filter out non-geographic location values
-function resolveLocation(raw: string): string {
-  const f = formatLocation(raw ?? '');
-  return /^(remote|work from home|wfh|n\/a)$/i.test(f.trim()) ? '' : f;
-}
+
+/** The same bullet list the DOCX builds, so the preview shows what exports. */
+const BulletList = ({ items, small }: { items: string[]; small?: boolean }) => (
+  <div style={{ paddingLeft: 4 }}>
+    {items.map((r, j) => (
+      <div key={j} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 2 }}>
+        <span style={{ flexShrink: 0, width: 14, color: '#333', fontSize: 12, lineHeight: '18px' }}>•</span>
+        <span style={{ fontSize: small ? 11.5 : 12, color: '#222', lineHeight: '18px' }}>{r}</span>
+      </div>
+    ))}
+  </div>
+);
+
+
+const RespBullets = ({ items, small }: { items: unknown; small?: boolean }) => {
+  const lines = responsibilityBullets(items);
+  if (!lines.length) return null;
+  return (
+    <div style={{ paddingLeft: 4 }}>
+      {lines.map((r, j) => (
+        <div key={j} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 2, paddingLeft: r.level * 14 }}>
+          <span style={{ flexShrink: 0, width: 14, color: '#333', fontSize: 12, lineHeight: '18px' }}>
+            {r.level ? '○' : '•'}
+          </span>
+          <span style={{ fontSize: small ? 11.5 : 12, color: '#222', lineHeight: '18px' }}>{r.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const ACCENT = '#1F497D';
 
@@ -121,11 +149,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
             <section style={{ marginBottom: 18 }}>
               <SectionHeader label="Employment History" />
               {resumeData.employmentHistory!.map((job, i) => {
-                const loc = resolveLocation(job.location ?? '');
-                const period = formatDatePeriod(job.workPeriod ?? '');
+                const loc = resolveJobLocation(job.location);
+                const period = formatDatePeriod(job.workPeriod);
                 const dept = (job.department ?? '').trim();
-                const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-                const mainResps = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
+                const hasResps = responsibilityBullets(job.responsibilities).length > 0;
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 12 : 0 }}>
                     {/* Company + Period */}
@@ -144,32 +171,25 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                     )}
                     {dept && <p style={{ margin: '2px 0', color: '#555', fontSize: 12 }}>{dept}</p>}
 
-                    {/* Main responsibilities — sub-bullets (○) grouped, then prose-split */}
-                    {mainResps.length > 0 && (
+                    {/* Main responsibilities — sub-bullets (○) kept as their own lines */}
+                    {hasResps && (
                       <div style={{ marginTop: 4 }}>
                         <p style={{ margin: '0 0 2px', fontWeight: 700, color: '#222', fontSize: 12 }}>Responsibilities</p>
-                        <div style={{ paddingLeft: 4 }}>
-                          {mainResps.map((r, j) => (
-                            <div key={j} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 2 }}>
-                              <span style={{ flexShrink: 0, width: 14, color: '#333', fontSize: 12, lineHeight: '18px' }}>•</span>
-                              <span style={{ fontSize: 12, color: '#222', lineHeight: '18px' }}>{stripBullet(r)}</span>
-                            </div>
-                          ))}
-                        </div>
+                        <RespBullets items={job.responsibilities} />
                       </div>
                     )}
 
                     {/* Sub-projects */}
-                    {(job.projects ?? []).map((proj, pi) => {
-                      const subResps = (proj.projectResponsibilities ?? []).filter(r => r.trim());
-                      const title = projectTitleWithClient(proj, `Project ${pi + 1}`);
+                    {objList<NonNullable<typeof job.projects>[number]>(job.projects).map((proj, pi) => {
+                      const hasSub = responsibilityBullets(proj.projectResponsibilities).length > 0;
+                      const title = projectTitleWithClient(proj, `Project ${pi + 1}`, job.companyName);
                       return (
                         <div key={pi} style={{ marginTop: 6, paddingLeft: 8, borderLeft: `2px solid #c8d8ea` }}>
                           <p style={{ margin: '0 0 2px', fontWeight: 700, color: ACCENT, fontSize: 12 }}>{title}</p>
-                          {subResps.length > 0 && (
+                          {hasSub && (
                             <>
                               <p style={{ margin: '0 0 2px', fontWeight: 700, color: '#444', fontSize: 11 }}>Responsibilities</p>
-                              <p style={{ margin: 0, color: '#333', fontSize: 12 }}>{subResps.map(r => stripBullet(r)).join(', ')}</p>
+                              <RespBullets items={proj.projectResponsibilities} small />
                             </>
                           )}
                           {proj.keyTechnologies && (
@@ -182,13 +202,13 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                     })}
 
                     {/* Subsections */}
-                    {(job.subsections ?? []).map((sub, si) => {
-                      const items = (sub.content ?? []).filter(c => c.trim());
+                    {objList<NonNullable<typeof job.subsections>[number]>(job.subsections).map((sub, si) => {
+                      const items = textList(sub.content);
                       if (!sub.title && !items.length) return null;
                       return (
                         <div key={si} style={{ marginTop: 4 }}>
                           {sub.title && <p style={{ margin: '0 0 2px', fontWeight: 700, color: ACCENT, fontSize: 12 }}>{sub.title}:</p>}
-                          {items.length > 0 && <p style={{ margin: 0, color: '#333', fontSize: 12 }}>{items.map(r => stripBullet(r)).join(', ')}</p>}
+                          <RespBullets items={sub.content} />
                         </div>
                       );
                     })}
@@ -250,17 +270,17 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ resumeData, format = 'ohi
                 ))}
               </ul>
               {/* Extra summary subsections — e.g. "Areas of Expertise" */}
-              {(resumeData.summarySections ?? resumeData.subsections ?? []).map((sub, i) => {
-                const items = (sub.content ?? []).filter(c => c.trim());
+              {objList<NonNullable<typeof resumeData.summarySections>[number]>(
+                resumeData.summarySections ?? resumeData.subsections,
+              ).map((sub, i) => {
+                const items = textList(sub.content);
                 if (!sub.title && !items.length) return null;
                 return (
                   <div key={i} style={{ marginTop: 6 }}>
                     {sub.title && (
                       <p style={{ margin: '0 0 2px', fontWeight: 700, color: ACCENT, fontSize: 12 }}>{sub.title}</p>
                     )}
-                    {items.length > 0 && (
-                      <p style={{ margin: 0, color: '#222', fontSize: 12 }}>{items.map(r => stripBullet(r)).join(', ')}</p>
-                    )}
+                    <BulletList items={items.map(stripBullet)} />
                   </div>
                 );
               })}

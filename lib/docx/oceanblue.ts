@@ -1,23 +1,28 @@
 import {
-  Document, Packer, Paragraph, ImageRun,
+  Document, Paragraph, ImageRun,
   TextRun, AlignmentType, LevelFormat,
   LineRuleType,
 } from 'docx';
-import { saveAs } from 'file-saver';
-import type { ResumeData } from '@/lib/types';
+import type { ResumeData, OhioEducationEntry, OhioCertificationEntry, OhioEmploymentEntry, OhioProjectEntry, OhioSubsection, SimpleProject } from '@/lib/types';
 import {
   stripBullet,
   formatDatePeriod,
   sortEducation,
   getEdLocation,
-  formatLocation,
-  groupResponsibilities,
+  responsibilityBullets,
   splitProseToBullets,
   projectTitleWithClient,
+  resolveJobLocation,
+  contactLine,
+  text,
+  textList,
+  objList,
+  safely,
   BODY_SPACING,
   RIGHT_TAB,
 } from './shared';
 import { buildSupplementalDocx } from './supplemental';
+import { downloadDocx } from './download';
 
 // ── Constants (no colors — all black) ──────────────────────────────────────
 
@@ -26,28 +31,8 @@ const SP_AFTER = { before: 0, after: 80, line: 240, lineRule: LineRuleType.AUTO 
 
 // ── Location helper ────────────────────────────────────────────────────────
 
-function resolveJobLocation(raw: string): string {
-  const f = formatLocation(raw ?? '');
-  return /^(remote|work from home|wfh|n\/a)$/i.test(f.trim()) ? '' : f;
-}
 
-function shortenLinkedIn(url: string): string {
-  try {
-    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
-    return `linkedin.com${u.pathname.replace(/\/$/, '')}`;
-  } catch {
-    return url;
-  }
-}
 
-function shortenGitHub(url: string): string {
-  try {
-    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
-    return `github.com${u.pathname.replace(/\/$/, '')}`;
-  } catch {
-    return url;
-  }
-}
 
 // ── Logo (WebP → PNG via canvas) ───────────────────────────────────────────
 
@@ -104,20 +89,25 @@ const sectionHdr = (label: string) =>
     ],
   });
 
-const plain = (text: string) =>
+const plain = (t: unknown) =>
   new Paragraph({
     alignment: AlignmentType.JUSTIFIED,
     spacing: SP,
-    children: [new TextRun({ text, font: 'Calibri', size: 22 })],
+    children: [new TextRun({ text: text(t), font: 'Calibri', size: 22 })],
   });
 
-const bulletPara = (text: string) =>
+const bulletPara = (t: unknown, level: 0 | 1 = 0, indent?: number) =>
   new Paragraph({
-    numbering: { reference: 'resumeBullet', level: 0 },
+    numbering: { reference: 'resumeBullet', level },
     alignment: AlignmentType.JUSTIFIED,
     spacing: BODY_SPACING,
-    children: [new TextRun({ text: stripBullet(text), font: 'Calibri', size: 22 })],
+    ...(indent ? { indent: { left: indent } } : {}),
+    children: [new TextRun({ text: stripBullet(t), font: 'Calibri', size: 22 })],
   });
+
+/** One bullet per source line, keeping any sub-bullet nesting. */
+const respBullets = (items: unknown, indent?: number) =>
+  responsibilityBullets(items).map(r => bulletPara(r.text, r.level, indent));
 
 const blankLine = () =>
   new Paragraph({ spacing: { before: 0, after: 60, line: 240, lineRule: LineRuleType.AUTO }, children: [] });
@@ -126,12 +116,13 @@ const blankLine = () =>
 
 function buildEmployment(data: ResumeData): Paragraph[] {
   const paras: Paragraph[] = [];
-  if (!data.employmentHistory?.length) return paras;
+  const jobs = objList<OhioEmploymentEntry>(data.employmentHistory);
+  if (!jobs.length) return paras;
 
-  data.employmentHistory.forEach((job, idx) => {
+  jobs.forEach((job, idx) => {
     try {
-      const loc    = resolveJobLocation(job.location ?? '');
-      const period = formatDatePeriod(job.workPeriod ?? '');
+      const loc    = resolveJobLocation(job.location);
+      const period = formatDatePeriod(job.workPeriod);
 
       if (idx > 0) paras.push(blankLine());
 
@@ -142,7 +133,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
           alignment: AlignmentType.JUSTIFIED,
           spacing: SP,
           children: [
-            new TextRun({ text: job.companyName ?? 'Company', bold: true, size: 26, font: 'Calibri' }),
+            new TextRun({ text: text(job.companyName) || 'Company', bold: true, size: 26, font: 'Calibri' }),
             new TextRun({ text: '\t' }),
             new TextRun({ text: period, size: 22, font: 'Calibri' }),
           ],
@@ -156,7 +147,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
           alignment: AlignmentType.JUSTIFIED,
           spacing: SP_AFTER,
           children: [
-            new TextRun({ text: job.roleName ?? 'Role', italics: true, size: 22, font: 'Calibri' }),
+            new TextRun({ text: text(job.roleName) || 'Role', italics: true, size: 22, font: 'Calibri' }),
             ...(loc
               ? [new TextRun({ text: '\t' }), new TextRun({ text: loc, size: 20, font: 'Calibri' })]
               : []),
@@ -164,18 +155,14 @@ function buildEmployment(data: ResumeData): Paragraph[] {
         }),
       );
 
-      const dept = (job.department ?? '').trim();
+      const dept = text(job.department).trim();
       if (dept) paras.push(plain(dept));
 
-      // Responsibility bullets: group sub-bullets first, then prose-split per item.
-      const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-      const grouped = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
-      grouped.forEach(r => paras.push(bulletPara(r)));
+      paras.push(...respBullets(job.responsibilities));
 
       // Sub-projects (consulting structure)
-      (job.projects ?? []).forEach((proj, pi) => {
-        const title    = projectTitleWithClient(proj, `Project ${pi + 1}`);
-        const subResps = (proj.projectResponsibilities ?? []).filter(r => r.trim());
+      objList<OhioProjectEntry>(job.projects).forEach((proj, pi) => {
+        const title = projectTitleWithClient(proj, `Project ${pi + 1}`, job.companyName);
 
         paras.push(
           new Paragraph({
@@ -186,20 +173,11 @@ function buildEmployment(data: ResumeData): Paragraph[] {
           }),
         );
 
-        if (subResps.length) {
-          paras.push(
-            new Paragraph({
-              alignment: AlignmentType.JUSTIFIED,
-              spacing: SP,
-              indent: { left: 360 },
-              children: [
-                new TextRun({ text: subResps.map(r => stripBullet(r)).join(', '), size: 22, font: 'Calibri' }),
-              ],
-            }),
-          );
-        }
+        // One bullet per responsibility, indented under the project. These
+        // used to be comma-joined into a single run-on paragraph.
+        paras.push(...respBullets(proj.projectResponsibilities, 720));
 
-        if (proj.keyTechnologies) {
+        if (text(proj.keyTechnologies).trim()) {
           paras.push(
             new Paragraph({
               alignment: AlignmentType.JUSTIFIED,
@@ -207,7 +185,7 @@ function buildEmployment(data: ResumeData): Paragraph[] {
               indent: { left: 360 },
               children: [
                 new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Calibri' }),
-                new TextRun({ text: proj.keyTechnologies, size: 20, font: 'Calibri' }),
+                new TextRun({ text: text(proj.keyTechnologies), size: 20, font: 'Calibri' }),
               ],
             }),
           );
@@ -215,44 +193,36 @@ function buildEmployment(data: ResumeData): Paragraph[] {
       });
 
       // Subsections
-      (job.subsections ?? []).forEach(sub => {
-        if (sub.title) {
+      objList<OhioSubsection>(job.subsections).forEach(sub => {
+        const title = text(sub.title).trim();
+        if (title) {
           paras.push(
             new Paragraph({
               alignment: AlignmentType.JUSTIFIED,
               spacing: SP,
-              children: [new TextRun({ text: sub.title + ':', bold: true, size: 22, font: 'Calibri' })],
+              children: [new TextRun({ text: title + ':', bold: true, size: 22, font: 'Calibri' })],
             }),
           );
         }
-        const items = (sub.content ?? []).filter(c => c.trim());
-        if (items.length) {
-          paras.push(
-            new Paragraph({
-              alignment: AlignmentType.JUSTIFIED,
-              spacing: SP,
-              children: [
-                new TextRun({ text: items.map(r => stripBullet(r)).join(', '), size: 22, font: 'Calibri' }),
-              ],
-            }),
-          );
-        }
+        paras.push(...respBullets(sub.content));
       });
 
-      if (job.keyTechnologies) {
+      if (text(job.keyTechnologies).trim()) {
         paras.push(
           new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
             spacing: { ...SP, before: 120 },
             children: [
               new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Calibri' }),
-              new TextRun({ text: job.keyTechnologies, size: 20, font: 'Calibri' }),
+              new TextRun({ text: text(job.keyTechnologies), size: 20, font: 'Calibri' }),
             ],
           }),
         );
       }
-    } catch {
-      paras.push(plain(`[${job.companyName ?? 'Employment entry'} could not be rendered]`));
+    } catch (e) {
+       
+      console.error('employment entry could not be rendered', e);
+      paras.push(plain(`[${text(job.companyName) || 'Employment entry'} could not be rendered]`));
     }
   });
 
@@ -263,9 +233,10 @@ function buildEmployment(data: ResumeData): Paragraph[] {
 
 function buildProjects(data: ResumeData): Paragraph[] {
   const paras: Paragraph[] = [];
-  if (!data.projects?.length) return paras;
+  const projects = objList<SimpleProject>(data.projects);
+  if (!projects.length) return paras;
 
-  data.projects.forEach((proj, idx) => {
+  projects.forEach((proj, idx) => {
     if (idx > 0) paras.push(blankLine());
 
     paras.push(
@@ -274,37 +245,38 @@ function buildProjects(data: ResumeData): Paragraph[] {
         alignment: AlignmentType.JUSTIFIED,
         spacing: SP,
         children: [
-          new TextRun({ text: proj.name ?? '', bold: true, size: 26, font: 'Calibri' }),
-          ...(proj.date
-            ? [new TextRun({ text: '\t' }), new TextRun({ text: proj.date, size: 22, font: 'Calibri' })]
+          new TextRun({ text: text(proj.name), bold: true, size: 26, font: 'Calibri' }),
+          ...(text(proj.date).trim()
+            ? [new TextRun({ text: '\t' }), new TextRun({ text: text(proj.date), size: 22, font: 'Calibri' })]
             : []),
         ],
       }),
     );
 
-    if (proj.role) {
+    if (text(proj.role).trim()) {
       paras.push(
         new Paragraph({
           spacing: SP,
-          children: [new TextRun({ text: proj.role, italics: true, size: 22, font: 'Calibri' })],
+          children: [new TextRun({ text: text(proj.role), italics: true, size: 22, font: 'Calibri' })],
         }),
       );
     }
 
-    if (proj.description) {
+    if (text(proj.description).trim()) {
       paras.push(plain(proj.description));
     }
 
-    (proj.highlights ?? []).forEach(h => paras.push(bulletPara(h)));
+    textList(proj.highlights).forEach(h => paras.push(bulletPara(h)));
 
-    if ((proj.technologies ?? []).length) {
+    const tech = textList(proj.technologies);
+    if (tech.length) {
       paras.push(
         new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           spacing: SP,
           children: [
             new TextRun({ text: 'Technologies: ', bold: true, size: 20, font: 'Calibri' }),
-            new TextRun({ text: proj.technologies!.join(', '), size: 20, font: 'Calibri' }),
+            new TextRun({ text: tech.join(', '), size: 20, font: 'Calibri' }),
           ],
         }),
       );
@@ -319,54 +291,30 @@ function buildProjects(data: ResumeData): Paragraph[] {
 function buildSkills(data: ResumeData): Paragraph[] {
   const paras: Paragraph[] = [];
 
-  if (data.technicalSkills && Object.keys(data.technicalSkills).length) {
-    Object.entries(data.technicalSkills).forEach(([cat, skills]) => {
-      paras.push(
-        new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: SP,
-          children: [
-            new TextRun({ text: cat + ': ', bold: true, size: 22, font: 'Calibri' }),
-            new TextRun({ text: Array.isArray(skills) ? skills.join(', ') : String(skills), size: 22, font: 'Calibri' }),
-          ],
-        }),
-      );
-    });
-  }
-
-  if (data.skillCategories?.length) {
-    const normal: typeof data.skillCategories = [];
-    data.skillCategories.forEach(c => {
-      const sl = Array.isArray(c.skills) ? c.skills.filter(s => s?.trim()) : [];
-      if (sl.length || c.subCategories?.length) normal.push({ ...c, skills: sl });
+  const skillLine = (label: unknown, skills: unknown, indent = 0) =>
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: SP,
+      ...(indent ? { indent: { left: indent } } : {}),
+      children: [
+        new TextRun({ text: text(label) + ': ', bold: true, size: 22, font: 'Calibri' }),
+        new TextRun({ text: textList(skills).join(', '), size: 22, font: 'Calibri' }),
+      ],
     });
 
-    normal.forEach(c => {
-      paras.push(
-        new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
-          spacing: SP,
-          children: [
-            new TextRun({ text: (c.categoryName ?? 'Category') + ': ', bold: true, size: 22, font: 'Calibri' }),
-            new TextRun({ text: Array.isArray(c.skills) ? c.skills.join(', ') : '', size: 22, font: 'Calibri' }),
-          ],
-        }),
-      );
-      (c.subCategories ?? []).forEach(sub => {
-        paras.push(
-          new Paragraph({
-            alignment: AlignmentType.JUSTIFIED,
-            spacing: SP,
-            indent: { left: 360 },
-            children: [
-              new TextRun({ text: (sub.name ?? '') + ': ', bold: true, size: 22, font: 'Calibri' }),
-              new TextRun({ text: Array.isArray(sub.skills) ? sub.skills.join(', ') : '', size: 22, font: 'Calibri' }),
-            ],
-          }),
-        );
-      });
-    });
+  const technical = data.technicalSkills;
+  if (technical && typeof technical === 'object' && Object.keys(technical).length) {
+    Object.entries(technical).forEach(([cat, skills]) => paras.push(skillLine(cat, skills)));
   }
+
+  objList<{ categoryName?: string; skills?: unknown; subCategories?: unknown }>(data.skillCategories)
+    .forEach(c => {
+      const sl = textList(c.skills);
+      const subs = objList<{ name?: string; skills?: unknown }>(c.subCategories);
+      if (!sl.length && !subs.length) return;
+      paras.push(skillLine(text(c.categoryName) || 'Category', sl));
+      subs.forEach(sub => paras.push(skillLine(text(sub.name), sub.skills, 360)));
+    });
 
   return paras;
 }
@@ -374,12 +322,13 @@ function buildSkills(data: ResumeData): Paragraph[] {
 // ── Education ──────────────────────────────────────────────────────────────
 
 function buildEducation(data: ResumeData): Paragraph[] {
-  const sorted = sortEducation(data.education ?? []);
+  const sorted = sortEducation<OhioEducationEntry>(data.education);
   return sorted.map(edu => {
-    const degreeText = [edu.degree, edu.areaOfStudy ? `in ${edu.areaOfStudy}` : ''].filter(Boolean).join(' ');
-    const loc        = getEdLocation(edu.location ?? '');
-    const school     = [edu.school, loc].filter(Boolean).join(', ');
-    const date       = edu.date ?? '';
+    const area       = text(edu.areaOfStudy).trim();
+    const degreeText = [text(edu.degree).trim(), area ? `in ${area}` : ''].filter(Boolean).join(' ');
+    const loc        = getEdLocation(edu.location);
+    const school     = [text(edu.school).trim(), loc].filter(Boolean).join(', ');
+    const date       = text(edu.date).trim();
     return new Paragraph({
       tabStops: [RIGHT_TAB],
       alignment: AlignmentType.JUSTIFIED,
@@ -396,18 +345,19 @@ function buildEducation(data: ResumeData): Paragraph[] {
 // ── Certifications ─────────────────────────────────────────────────────────
 
 function buildCertifications(data: ResumeData): Paragraph[] {
-  if (!data.certifications?.length) return [];
-  return data.certifications.map(cert => {
+  return objList<OhioCertificationEntry>(data.certifications).map(cert => {
     const parts: string[] = [];
-    if (cert.issuedBy) parts.push(` — ${cert.issuedBy}`);
-    if (cert.dateObtained) parts.push(` (${cert.dateObtained})`);
+    const issuedBy = text(cert.issuedBy).trim();
+    const obtained = text(cert.dateObtained).trim();
+    if (issuedBy) parts.push(` — ${issuedBy}`);
+    if (obtained) parts.push(` (${obtained})`);
     const suffix = parts.join('');
     return new Paragraph({
       numbering: { reference: 'resumeBullet', level: 0 },
       alignment: AlignmentType.JUSTIFIED,
       spacing: BODY_SPACING,
       children: [
-        new TextRun({ text: cert.name ?? '', bold: true, size: 22, font: 'Calibri' }),
+        new TextRun({ text: text(cert.name), bold: true, size: 22, font: 'Calibri' }),
         ...(suffix ? [new TextRun({ text: suffix, size: 22, font: 'Calibri' })] : []),
       ],
     });
@@ -416,16 +366,18 @@ function buildCertifications(data: ResumeData): Paragraph[] {
 
 // ── Public API ─────────────────────────────────────────────────────────────
 
-export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
-  const logo = await fetchLogoPng();
+type Logo = { data: ArrayBuffer; width: number; height: number } | null;
 
-  const contactParts: string[] = [];
-  if (data.email)    contactParts.push(data.email);
-  if (data.phone)    contactParts.push(data.phone);
-  if (data.linkedin) contactParts.push(shortenLinkedIn(data.linkedin));
-  if (data.github)   contactParts.push(shortenGitHub(data.github));
-  if (data.location) contactParts.push(data.location);
-  const contactText = contactParts.join('  |  ');
+/**
+ * Assemble the document, without writing it anywhere.
+ *
+ * Split from the download helper for the same reason as the submission form:
+ * saveAs needs a DOM, so until this existed the layout could not be checked in
+ * a test. The logo is passed in rather than fetched here, since fetching it
+ * needs a browser too.
+ */
+export function buildOceanblueDocument(data: ResumeData, logo: Logo = null): Document {
+  const contactText = contactLine(data).join('  |  ');
 
   const children: Paragraph[] = [];
 
@@ -452,19 +404,19 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
       alignment: AlignmentType.CENTER,
       spacing: { before: 0, after: 40, line: 240, lineRule: LineRuleType.AUTO },
       children: [
-        new TextRun({ text: data.name ?? 'Full Name', bold: true, size: 40, font: 'Calibri' }),
+        new TextRun({ text: text(data.name) || 'Full Name', bold: true, size: 40, font: 'Calibri' }),
       ],
     }),
   );
 
   // Title (if present) — centered
-  if (data.title) {
+  if (text(data.title).trim()) {
     children.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 0, after: 40, line: 240, lineRule: LineRuleType.AUTO },
         children: [
-          new TextRun({ text: data.title, bold: true, size: 24, font: 'Calibri' }),
+          new TextRun({ text: text(data.title), bold: true, size: 24, font: 'Calibri' }),
         ],
       }),
     );
@@ -484,28 +436,26 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
   }
 
   // Professional Summary — bulleted list (matches preview rendering)
-  if ((data.professionalSummary?.length ?? 0) > 0) {
+  const summaryPoints = textList(data.professionalSummary).flatMap(splitProseToBullets);
+  if (summaryPoints.length) {
     children.push(sectionHdr('Professional Summary'));
-    (data.professionalSummary ?? [])
-      .flatMap(splitProseToBullets)
-      .forEach(pt => children.push(bulletPara(pt)));
+    summaryPoints.forEach(pt => children.push(bulletPara(pt)));
 
     // Extra summary subsections — e.g. "Areas of Expertise"
-    (data.summarySections ?? data.subsections ?? []).forEach(sub => {
-      const items = (sub.content ?? []).filter(c => c.trim());
-      if (!sub.title && !items.length) return;
-      if (sub.title) {
+    objList<OhioSubsection>(data.summarySections ?? data.subsections).forEach(sub => {
+      const title = text(sub.title).trim();
+      const items = textList(sub.content);
+      if (!title && !items.length) return;
+      if (title) {
         children.push(
           new Paragraph({
             alignment: AlignmentType.JUSTIFIED,
             spacing: SP,
-            children: [new TextRun({ text: sub.title, bold: true, size: 22, font: 'Calibri' })],
+            children: [new TextRun({ text: title, bold: true, size: 22, font: 'Calibri' })],
           }),
         );
       }
-      if (items.length) {
-        children.push(plain(items.map(r => stripBullet(r)).join(', ')));
-      }
+      items.forEach(item => children.push(bulletPara(item)));
     });
   }
 
@@ -517,9 +467,10 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
   }
 
   // Work Experience
-  if ((data.employmentHistory?.length ?? 0) > 0) {
+  const jobParas = safely(() => buildEmployment(data), () => []);
+  if (jobParas.length) {
     children.push(sectionHdr('Work Experience'));
-    children.push(...buildEmployment(data));
+    children.push(...jobParas);
   }
 
   // Standalone Projects
@@ -565,16 +516,28 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
     numbering: {
       config: [{
         reference: 'resumeBullet',
-        levels: [{
-          level: 0,
-          format: LevelFormat.BULLET,
-          text: '•',
-          alignment: AlignmentType.LEFT,
-          style: {
-            paragraph: { indent: { left: 360, hanging: 360 } },
-            run: { font: 'Calibri', size: 22 },
+        levels: [
+          {
+            level: 0,
+            format: LevelFormat.BULLET,
+            text: '•',
+            alignment: AlignmentType.LEFT,
+            style: {
+              paragraph: { indent: { left: 360, hanging: 360 } },
+              run: { font: 'Calibri', size: 22 },
+            },
           },
-        }],
+          {
+            level: 1,
+            format: LevelFormat.BULLET,
+            text: '○',
+            alignment: AlignmentType.LEFT,
+            style: {
+              paragraph: { indent: { left: 720, hanging: 360 } },
+              run: { font: 'Calibri', size: 22 },
+            },
+          },
+        ],
       }],
     },
     sections: [{
@@ -588,6 +551,11 @@ export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
     }],
   });
 
-  const blob = await Packer.toBlob(doc);
-  saveAs(blob, `${data.name ?? 'Resume'}_Oceanblue.docx`);
+  return doc;
+}
+
+/** Build the document and hand it to the browser as a download. */
+export async function buildOceanblueDocx(data: ResumeData): Promise<void> {
+  const logo = await fetchLogoPng();
+  await downloadDocx(buildOceanblueDocument(data, logo), data, 'Oceanblue');
 }

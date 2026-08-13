@@ -8,38 +8,23 @@ import {
   formatDatePeriod,
   sortEducation,
   getEdLocation,
-  groupResponsibilities,
-  formatLocation,
+  responsibilityBullets,
+  splitProseToBullets,
+  projectTitleWithClient,
+  resolveJobLocation,
+  shortenLinkedIn,
+  shortenGitHub,
+  textList,
+  objList,
 } from '@/lib/docx/shared';
-import { splitProseToBullets } from '@/formatters/shared/utils';
-import { projectTitleWithClient } from '@/lib/docx/shared';
 import SupplementalSections from './SupplementalSections';
 
 const TEXT    = '#111111';
 const SUBTEXT = '#444444';
 
-function resolveLocation(raw: string): string {
-  const f = formatLocation(raw ?? '');
-  return /^(remote|work from home|wfh|n\/a)$/i.test(f.trim()) ? '' : f;
-}
 
-function shortenLinkedIn(url: string): string {
-  try {
-    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
-    return `linkedin.com${u.pathname.replace(/\/$/, '')}`;
-  } catch {
-    return url;
-  }
-}
 
-function shortenGitHub(url: string): string {
-  try {
-    const u = new URL(url.startsWith('http') ? url : `https://${url}`);
-    return `github.com${u.pathname.replace(/\/$/, '')}`;
-  } catch {
-    return url;
-  }
-}
+
 
 const SectionHeader = ({ label }: { label: string }) => (
   <p style={{
@@ -133,8 +118,10 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
               })()}
 
               {/* Extra summary subsections — e.g. "Areas of Expertise" */}
-              {(resumeData.summarySections ?? resumeData.subsections ?? []).map((sub, i) => {
-                const items = (sub.content ?? []).filter(c => c.trim());
+              {objList<NonNullable<typeof resumeData.summarySections>[number]>(
+                resumeData.summarySections ?? resumeData.subsections,
+              ).map((sub, i) => {
+                const items = textList(sub.content).map(stripBullet);
                 if (!sub.title && !items.length) return null;
                 return (
                   <div key={i} style={{ marginTop: 8 }}>
@@ -142,9 +129,11 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                       <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>{sub.title}</p>
                     )}
                     {items.length > 0 && (
-                      <p style={{ margin: 0, fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>
-                        {items.map(r => stripBullet(r)).join(', ')}
-                      </p>
+                      <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                        {items.map((r, ri) => (
+                          <li key={ri} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5 }}>{r}</li>
+                        ))}
+                      </ul>
                     )}
                   </div>
                 );
@@ -182,10 +171,9 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
             <section style={{ marginBottom: 16 }}>
               <SectionHeader label="Work Experience" />
               {resumeData.employmentHistory!.map((job, i) => {
-                const loc    = resolveLocation(job.location ?? '');
+                const loc    = resolveJobLocation(job.location ?? '');
                 const period = formatDatePeriod(job.workPeriod ?? '');
-                const liveResps = (job.responsibilities ?? []).filter(r => r.trim());
-                const grouped = groupResponsibilities(liveResps).flatMap(splitProseToBullets);
+                const grouped = responsibilityBullets(job.responsibilities);
                 return (
                   <div key={i} style={{ marginBottom: i < resumeData.employmentHistory!.length - 1 ? 14 : 0 }}>
 
@@ -209,24 +197,33 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                     {grouped.length > 0 && (
                       <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: 'disc' }}>
                         {grouped.map((r, j) => (
-                          <li key={j} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2 }}>{r}</li>
+                          <li
+                            key={j}
+                            style={{
+                              fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginBottom: 2,
+                              marginLeft: r.level * 14,
+                              listStyleType: r.level ? 'circle' : 'disc',
+                            }}
+                          >
+                            {r.text}
+                          </li>
                         ))}
                       </ul>
                     )}
 
                     {/* Sub-projects (consulting structure) */}
-                    {(job.projects ?? []).map((proj, pi) => {
-                      const subResps = (proj.projectResponsibilities ?? []).filter(r => r.trim());
+                    {objList<NonNullable<typeof job.projects>[number]>(job.projects).map((proj, pi) => {
+                      const subResps = responsibilityBullets(proj.projectResponsibilities);
                       return (
                         <div key={pi} style={{ marginTop: 6, paddingLeft: 14 }}>
                           <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: 12, color: TEXT }}>
-                            {projectTitleWithClient(proj, `Project ${pi + 1}`)}
+                            {projectTitleWithClient(proj, `Project ${pi + 1}`, job.companyName)}
                           </p>
                           {subResps.length > 0 && (
                             <ul style={{ margin: '0 0 0 14px', padding: 0, listStyleType: 'circle' }}>
                               {subResps.map((r, ri) => (
-                                <li key={ri} style={{ fontSize: 11, color: SUBTEXT, lineHeight: 1.45, marginBottom: 1 }}>
-                                  {stripBullet(r)}
+                                <li key={ri} style={{ fontSize: 11, color: SUBTEXT, lineHeight: 1.45, marginBottom: 1, marginLeft: r.level * 12 }}>
+                                  {r.text}
                                 </li>
                               ))}
                             </ul>
@@ -242,8 +239,8 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                     })}
 
                     {/* Subsections */}
-                    {(job.subsections ?? []).map((sub, si) => {
-                      const items = (sub.content ?? []).filter(c => c.trim());
+                    {objList<NonNullable<typeof job.subsections>[number]>(job.subsections).map((sub, si) => {
+                      const items = responsibilityBullets(sub.content);
                       if (!sub.title && !items.length) return null;
                       return (
                         <div key={si} style={{ marginTop: 4 }}>
@@ -251,9 +248,13 @@ const OceanblueFormat: React.FC<Props> = ({ resumeData }) => {
                             <p style={{ margin: '0 0 1px', fontWeight: 700, fontSize: 12, color: TEXT }}>{sub.title}:</p>
                           )}
                           {items.length > 0 && (
-                            <p style={{ margin: 0, fontSize: 12, color: SUBTEXT }}>
-                              {items.map(r => stripBullet(r)).join(', ')}
-                            </p>
+                            <ul style={{ margin: '0 0 0 16px', padding: 0, listStyleType: 'disc' }}>
+                              {items.map((r, ri) => (
+                                <li key={ri} style={{ fontSize: 12, color: SUBTEXT, lineHeight: 1.5, marginLeft: r.level * 14 }}>
+                                  {r.text}
+                                </li>
+                              ))}
+                            </ul>
                           )}
                         </div>
                       );
