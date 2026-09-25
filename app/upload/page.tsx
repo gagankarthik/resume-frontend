@@ -193,7 +193,8 @@ export default function UploadPage() {
               {[
                 'Held in memory for the request only',
                 'Never written to disk on our servers',
-                'The record stays in your browser',
+                'The full record stays in your browser',
+                'The talent map keeps no names or contact details',
               ].map(t => (
                 <li key={t} className="flex gap-2.5 text-[13.5px] leading-snug text-tc-muted">
                   <svg width="13" height="13" viewBox="0 0 8 8" fill="none" aria-hidden className="mt-[3px] shrink-0 text-tc-mint">

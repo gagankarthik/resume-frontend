@@ -65,6 +65,9 @@ export async function POST(req: Request) {
   if (session.owner) query.set('owner', session.owner);
   if (force) query.set('force', 'true');
 
+  // The match service parses through the extraction engine, which saves every
+  // extraction to resume-extractions — so this resume reaches the talent map
+  // with no extra step here.
   return serviceResponse(
     await callMatchService(`/ingest?${query.toString()}`, {
       body: outbound,

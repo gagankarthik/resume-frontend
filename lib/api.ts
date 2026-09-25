@@ -51,7 +51,7 @@ export async function extractResume(file: File): Promise<APIResponse> {
 
   let res: Response;
   try {
-    res = await fetch(`${ticket.url}/extract`, {
+    res = await fetch(`${ticket.url}/extract?source=hire`, {
       method: 'POST',
       body: form,
       headers: { [ticket.header]: ticket.token },
@@ -59,8 +59,11 @@ export async function extractResume(file: File): Promise<APIResponse> {
   } catch {
     // A network-level failure here is not the ordinary "server said no": the
     // request never completed. The usual causes are a dropped connection
-    // mid-upload or an origin the engine's CORS config does not allow.
-    throw new Error('Could not reach the extraction service. Check your connection and try again.');
+    // mid-upload or an origin the engine's CORS config does not allow — the
+    // engine only allows the production domain, so local development always
+    // lands here. Retry through this app's own server route, which has no CORS
+    // to satisfy (and, off CloudFront, no 30-second ceiling).
+    return extractViaServer(file);
   }
 
   if (!res.ok) {
@@ -71,5 +74,25 @@ export async function extractResume(file: File): Promise<APIResponse> {
     throw new Error(await detailFrom(res, `The upload failed (HTTP ${res.status}).`));
   }
 
+  return res.json() as Promise<APIResponse>;
+}
+
+/** The server-proxied path (/api/extract), used when the direct upload cannot connect. */
+async function extractViaServer(file: File): Promise<APIResponse> {
+  const form = new FormData();
+  form.append('file', file);
+  let res: Response;
+  try {
+    res = await fetch('/api/extract', { method: 'POST', body: form });
+  } catch {
+    throw new Error('Could not reach the extraction service. Check your connection and try again.');
+  }
+  if (!res.ok) {
+    if (res.status === 401) toSignIn();
+    if (res.status === 504) {
+      throw new Error('The extraction took too long through this connection. Try again, or upload a smaller file.');
+    }
+    throw new Error(await detailFrom(res, `The upload failed (HTTP ${res.status}).`));
+  }
   return res.json() as Promise<APIResponse>;
 }

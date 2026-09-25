@@ -20,6 +20,7 @@ const NAV = [
   { href: '/upload', label: 'Upload' },
   { href: '/editor', label: 'Review' },
   { href: '/match', label: 'Match' },
+  { href: '/talent', label: 'Talent map' },
 ] as const;
 
 export default function AppHeader({ children }: { children?: ReactNode }) {

@@ -1,22 +1,24 @@
 import Link from 'next/link';
 import type { ComponentProps, ReactNode } from 'react';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse';
 type Size = 'sm' | 'md' | 'lg';
 
 const VARIANT: Record<Variant, string> = {
   primary:
-    'bg-tc-ink text-white hover:bg-tc-ink-2 active:bg-tc-ink disabled:bg-tc-faint shadow-[0_1px_2px_rgba(11,27,51,0.16)]',
+    'bg-tc-azure text-white hover:bg-tc-azure-d active:bg-tc-azure-d disabled:bg-tc-faint ' +
+    'shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(10,30,58,0.2)]',
   secondary:
-    'bg-white text-tc-ink border border-tc-line-2 hover:border-tc-faint hover:bg-tc-desk shadow-[0_1px_2px_rgba(11,27,51,0.05)]',
+    'bg-white text-tc-ink border border-tc-line-2 hover:border-tc-faint hover:bg-tc-desk shadow-[0_1px_2px_rgba(10,30,58,0.05)]',
   ghost: 'text-tc-muted hover:text-tc-ink hover:bg-tc-desk',
   danger: 'bg-tc-rose text-white hover:brightness-95',
+  inverse: 'bg-white text-tc-ink hover:bg-tc-desk-2',
 };
 
 const SIZE: Record<Size, string> = {
-  sm: 'h-8 px-3 text-[13px] rounded-lg gap-1.5',
-  md: 'h-10 px-4 text-[14px] rounded-lg gap-2',
-  lg: 'h-12 px-6 text-[15px] rounded-[10px] gap-2',
+  sm: 'h-9 px-3.5 text-[13.5px] rounded-md gap-1.5',
+  md: 'h-10 px-4 text-[14px] rounded-md gap-2',
+  lg: 'h-12 px-6 text-[15px] rounded-lg gap-2',
 };
 
 const base =

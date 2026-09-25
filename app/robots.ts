@@ -10,7 +10,7 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         // The working pages hold candidate data and need a session; there is
         // nothing there for a crawler to index.
-        disallow: ['/api/', '/upload', '/editor', '/signin', '/signed-out'],
+        disallow: ['/api/', '/upload', '/editor', '/match', '/talent', '/signin', '/signed-out'],
       },
     ],
     sitemap: `${ORIGIN}/sitemap.xml`,

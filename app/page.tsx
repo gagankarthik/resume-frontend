@@ -1,35 +1,47 @@
 import type { Metadata } from 'next';
-import SiteNav from '@/components/landing/SiteNav';
-import Hero from '@/components/landing/Hero';
-import HowItWorks from '@/components/landing/HowItWorks';
-import FormatGallery from '@/components/landing/FormatGallery';
-import MatchSection from '@/components/landing/MatchSection';
-import FidelityGrid from '@/components/landing/FidelityGrid';
-import FAQ from '@/components/landing/FAQ';
-import SiteFooter from '@/components/landing/SiteFooter';
-import StructuredData from '@/components/seo/StructuredData';
+import MarketingPage from '@/components/landing/MarketingPage';
+import Hero from '@/components/landing/home/Hero';
+import { Bento, Facts, SectionTitle, Steps } from '@/components/landing/home/Sections';
+import SkillOrbit from '@/components/landing/home/SkillOrbit';
+import HeatModes from '@/components/landing/HeatModes';
+import UsHeatMap from '@/components/landing/product/UsHeatMap';
+import { CompanyBars } from '@/components/landing/product/SampleCharts';
 
 export const metadata: Metadata = {
-  title: 'Blue-IQ Hire: resumes set to the format the state requires',
+  title: { absolute: 'Blue-IQ Hire: resume formatting, job matching and talent heat maps for staffing teams' },
   description:
-    'Upload a resume in PDF, Word, or text. Blue-IQ Hire extracts every section word for word, checks it against the original, and writes a submission-ready Word document in the Ohio, Pennsylvania, Georgia, or Oceanblue template. Paste a job description to rank your resumes against it, with the matched and missing skills behind every score.',
+    'Format resumes to the Ohio, Pennsylvania, Georgia or Oceanblue template word for word, rank your resumes against a job description, and see on a heat map which employers and metros hold the talent you place.',
   alternates: { canonical: '/' },
 };
 
 export default function Home() {
   return (
-    <>
-      <StructuredData />
-      <SiteNav />
-      <main>
-        <Hero />
-        <HowItWorks />
-        <FormatGallery />
-        <MatchSection />
-        <FidelityGrid />
-        <FAQ />
-      </main>
-      <SiteFooter />
-    </>
+    <MarketingPage>
+      <Hero />
+      <SkillOrbit />
+      <Bento />
+      <Facts />
+      <Steps />
+
+      <section className="border-t border-zinc-100 bg-zinc-50/60 py-28">
+        <div className="mx-auto max-w-[1200px] px-5">
+          <SectionTitle
+            kicker="Talent heat map"
+            title="Built for recruiters and for sales."
+            lede="The same map answers two questions: where the talent is, and which companies to call."
+          />
+          <div className="mt-14">
+            <HeatModes
+              recruiting={
+                <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_24px_48px_-32px_rgba(9,9,11,0.35)]" style={{ aspectRatio: '975 / 610' }}>
+                  <UsHeatMap tone="vivid" animate={false} />
+                </div>
+              }
+              sales={<CompanyBars />}
+            />
+          </div>
+        </div>
+      </section>
+    </MarketingPage>
   );
 }

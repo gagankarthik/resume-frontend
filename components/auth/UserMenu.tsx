@@ -2,31 +2,12 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-
-type Session =
-  | { state: 'loading' }
-  | { state: 'off' }
-  | { state: 'out' }
-  | { state: 'in'; email?: string; name?: string };
+import { useSession } from './useSession';
 
 export default function UserMenu() {
-  const [session, setSession] = useState<Session>({ state: 'loading' });
+  const session = useSession();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let alive = true;
-    fetch('/api/auth/session')
-      .then(r => r.json())
-      .then((d: { authenticated: boolean; configured: boolean; user?: { email?: string; name?: string } }) => {
-        if (!alive) return;
-        if (!d.configured) setSession({ state: 'off' });
-        else if (!d.authenticated) setSession({ state: 'out' });
-        else setSession({ state: 'in', email: d.user?.email, name: d.user?.name });
-      })
-      .catch(() => alive && setSession({ state: 'off' }));
-    return () => { alive = false; };
-  }, []);
 
   useEffect(() => {
     if (!open) return;

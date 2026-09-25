@@ -175,6 +175,72 @@ export const IconMatch = (p: IconProps) => (
   </Icon>
 );
 
+/* A page set into columns — the formatting product. */
+export const IconFormat = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="2.5" y="3" width="7" height="14" rx="2" />
+    <path d="M12.5 4.5h5M12.5 8.5h5M12.5 12.5h5M12.5 16.5h3" />
+    <path d="M9.5 10h2" />
+  </Icon>
+);
+
+/* A folded map with a hotspot — the talent heat map. */
+export const IconMap = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M2.5 5.5 7 3.5l6 2 4.5-2v11L13 16.5l-6-2-4.5 2v-11Z" />
+    <path d="M7 3.5v11M13 5.5v11" />
+    <circle cx="10" cy="10" r="1.6" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
+/* Five passes, in order. */
+export const IconSteps = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="4.5" cy="10" r="2" />
+    <circle cx="15.5" cy="10" r="2" />
+    <path d="M6.5 10h7" strokeDasharray="1.5 2" />
+    <path d="M10 4.5v11" />
+  </Icon>
+);
+
+export const IconShield = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10 2.5 16 5v4.5c0 4-2.6 6.8-6 8-3.4-1.2-6-4-6-8V5l6-2.5Z" />
+    <path d="m7.3 10 1.9 1.9 3.6-3.9" />
+  </Icon>
+);
+
+export const IconQuestion = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="10" cy="10" r="7.5" />
+    <path d="M7.9 7.8a2.2 2.2 0 1 1 3 2c-.6.3-.9.8-.9 1.4v.3M10 14h.01" />
+  </Icon>
+);
+
+export const IconMail = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="2.5" y="4.5" width="15" height="11" rx="2.5" />
+    <path d="m3.5 6 6.5 5 6.5-5" />
+  </Icon>
+);
+
+/* Four sheets in a square — every template. */
+export const IconTemplates = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="3" width="6" height="6" rx="1.5" />
+    <rect x="11" y="3" width="6" height="6" rx="1.5" />
+    <rect x="3" y="11" width="6" height="6" rx="1.5" />
+    <rect x="11" y="11" width="6" height="6" rx="1.5" />
+  </Icon>
+);
+
+export const IconLegal = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10 3v14M5.5 17h9M4 6.5h12" />
+    <path d="M4 6.5 2 11a2 2 0 0 0 4 0L4 6.5ZM16 6.5 14 11a2 2 0 0 0 4 0l-2-4.5Z" />
+  </Icon>
+);
+
 export const IconTrash = (p: IconProps) => (
   <Icon {...p}>
     <path d="M3.5 5.5h13M8 5.5V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5" />

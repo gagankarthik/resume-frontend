@@ -2,66 +2,45 @@
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import SectionHeading from './SectionHeading';
+import { FAQ_ITEMS } from '@/lib/site/content';
 
-const QA = [
-  {
-    q: 'What can I upload?',
-    a: 'PDF, Word (.docx, .doc), and plain text, up to 20 MB. Scanned pages are read with OCR.',
-  },
-  {
-    q: 'Does it reword anything?',
-    a: 'No. Bullets and descriptions are copied character for character. Only the layout changes.',
-  },
-  {
-    q: 'What if a section is missed?',
-    a: 'The record is checked against the original before you see it, and anything missing is flagged at the top of the editor.',
-  },
-  {
-    q: 'Is candidate data stored?',
-    a: 'The upload is held in memory for the request and never written to disk. The extracted record stays in your browser until you clear it.',
-  },
-  {
-    q: 'Can one resume go to several states?',
-    a: 'Yes. Extract once, then export to any template without re-uploading.',
-  },
-  {
-    q: 'How does matching pick the candidates?',
-    a: 'The posting is read once for the role, requirements, and skills. Your resumes are shortlisted against it, then read again to score each one and say which skills matched and which are missing. Only resumes uploaded from your account are searched.',
-  },
-];
-
-function Item({ q, a, defaultOpen }: { q: string; a: string; defaultOpen: boolean }) {
+function Item({ q, a, id, defaultOpen, dark }: { q: string; a: string; id: string; defaultOpen: boolean; dark: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="border-b border-tc-line last:border-b-0">
-      <button
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-        className="flex w-full items-center justify-between gap-6 py-5 text-left"
-      >
-        <span className="text-[16px] font-medium text-tc-ink">{q}</span>
-        <span
-          className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border transition-all duration-300 ${
-            open ? 'rotate-45 border-tc-ink bg-tc-ink text-white' : 'border-tc-line text-tc-muted'
-          }`}
-          aria-hidden
+    <div className={`border-b ${dark ? 'border-white/[0.08]' : 'border-tc-line'}`}>
+      <h3>
+        <button
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          aria-controls={id}
+          className="group flex w-full items-center justify-between gap-6 py-6 text-left"
         >
-          <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-            <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </span>
-      </button>
+          <span className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? 'text-white' : 'text-tc-ink'}`}>{q}</span>
+          <span
+            className={`grid h-8 w-8 shrink-0 place-items-center rounded-full border transition-colors ${
+              open
+                ? dark ? 'border-white bg-white text-zinc-950' : 'border-tc-azure bg-tc-azure text-white'
+                : dark ? 'border-white/15 text-zinc-400 group-hover:text-white' : 'border-tc-line-2 text-tc-muted group-hover:border-tc-faint group-hover:text-tc-ink'
+            }`}
+            aria-hidden
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform duration-300 ${open ? 'rotate-45' : ''}`}>
+              <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </span>
+        </button>
+      </h3>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
+            id={id}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <p className="max-w-xl pb-5 pr-10 text-[14.5px] leading-[1.65] text-tc-muted">{a}</p>
+            <p className={`max-w-[40rem] pb-6 pr-12 text-[15.5px] leading-[1.65] ${dark ? 'text-zinc-400' : 'text-tc-muted'}`}>{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -69,19 +48,15 @@ function Item({ q, a, defaultOpen }: { q: string; a: string; defaultOpen: boolea
   );
 }
 
-export default function FAQ() {
+/** The question list. `limit` shows the first few, for pages that link on to /faq. */
+export default function FAQList({ limit, tone = 'light' }: { limit?: number; tone?: 'light' | 'dark' }) {
+  const dark = tone === 'dark';
+  const items = limit ? FAQ_ITEMS.slice(0, limit) : FAQ_ITEMS;
   return (
-    <section id="faq" className="border-t border-tc-line bg-tc-desk py-20 lg:py-24">
-      <div className="mx-auto max-w-[1140px] px-5">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-16">
-          <SectionHeading label="FAQ" title="Before you upload." />
-          <div className="rounded-xl border border-tc-line bg-white px-6">
-            {QA.map((item, i) => (
-              <Item key={item.q} q={item.q} a={item.a} defaultOpen={i === 0} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
+    <div className={`border-t ${dark ? 'border-white/[0.08]' : 'border-tc-line'}`}>
+      {items.map((item, i) => (
+        <Item key={item.q} id={`faq-${i}`} q={item.q} a={item.a} defaultOpen={i === 0} dark={dark} />
+      ))}
+    </div>
   );
 }

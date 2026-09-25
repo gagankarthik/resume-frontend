@@ -1,0 +1,33 @@
+{
+    "Version":  "2012-10-17",
+    "Statement":  [
+                      {
+                          "Sid":  "TalentTable",
+                          "Effect":  "Allow",
+                          "Action":  [
+                                         "dynamodb:GetItem",
+                                         "dynamodb:PutItem",
+                                         "dynamodb:DeleteItem",
+                                         "dynamodb:Query",
+                                         "dynamodb:BatchWriteItem"
+                                     ],
+                          "Resource":  "arn:aws:dynamodb:us-east-2:417915984158:table/blue-iq-hire-talent"
+                      },
+                      {
+                          "Sid":  "EngineExtractions",
+                          "Effect":  "Allow",
+                          "Action":  [
+                                         "dynamodb:Query"
+                                     ],
+                          "Resource":  "arn:aws:dynamodb:us-east-2:417915984158:table/resume-extractions/index/by-created"
+                      },
+                      {
+                          "Sid":  "Geocode",
+                          "Effect":  "Allow",
+                          "Action":  [
+                                         "geo-places:Geocode"
+                                     ],
+                          "Resource":  "arn:aws:geo-places:us-east-2::provider/default"
+                      }
+                  ]
+}

@@ -1,10 +1,24 @@
+import { useId } from 'react';
 import Link from 'next/link';
 
 /**
- * Hire mark — two sheets held in exact registration.
- * The back sheet is the source document; the front sheet is the copy,
- * offset by a precise, equal amount on both axes. Registration is the idea.
+ * Blue-IQ Hire mark — one record, four formats.
+ *
+ * A circle split down the middle. The left half is whole: the candidate's
+ * record, extracted once. The right half is cut into four equal bands that
+ * keep the circle's outline: the same record set four ways, still one thing.
  */
+
+export const BRAND = {
+  ultramarine: '#2A45D8',
+  ocean: '#1AA3C8',
+  ink: '#0C1B33',
+};
+
+/* Four bands across the circle's height (y 3 → 29), 1.5 units apart. */
+const BANDS = [3, 9.875, 16.75, 23.625];
+const BAND_H = 5.375;
+
 export function HireMark({
   size = 32,
   mono = false,
@@ -14,6 +28,10 @@ export function HireMark({
   mono?: boolean;
   className?: string;
 }) {
+  const clip = `hire-mark-${useId().replace(/:/g, '')}`;
+  const left = mono ? 'currentColor' : BRAND.ultramarine;
+  const right = mono ? 'currentColor' : BRAND.ocean;
+
   return (
     <svg
       width={size}
@@ -24,38 +42,18 @@ export function HireMark({
       className={className}
     >
       <defs>
-        <linearGradient id="tc-mark-grad" x1="11" y1="7" x2="29" y2="29" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#3FC8F5" />
-          <stop offset="1" stopColor="#1F6FEB" />
-        </linearGradient>
+        <clipPath id={clip}>
+          <circle cx="16" cy="16" r="13" />
+        </clipPath>
       </defs>
-
-      {/* source sheet — outline, held behind */}
-      <rect
-        x="3.6"
-        y="3.6"
-        width="16.8"
-        height="20.8"
-        rx="3.4"
-        stroke={mono ? 'currentColor' : '#3FC8F5'}
-        strokeOpacity={mono ? 0.55 : 0.85}
-        strokeWidth="2"
-      />
-
-      {/* the copy — set to spec */}
-      <rect
-        x="11.6"
-        y="7.6"
-        width="16.8"
-        height="20.8"
-        rx="3.4"
-        fill={mono ? 'currentColor' : 'url(#tc-mark-grad)'}
-      />
-
-      {/* set type on the copy */}
-      <rect x="15.2" y="12" width="7.2" height="2.4" rx="1.2" fill="#fff" fillOpacity="0.95" />
-      <rect x="15.2" y="17" width="9.6" height="2" rx="1" fill="#fff" fillOpacity="0.6" />
-      <rect x="15.2" y="21.4" width="6" height="2" rx="1" fill="#fff" fillOpacity="0.6" />
+      {/* the record */}
+      <path d="M15 3.04a13 13 0 0 0 0 25.92Z" fill={left} />
+      {/* the four formats */}
+      <g clipPath={`url(#${clip})`} fill={right} fillOpacity={mono ? 0.6 : 1}>
+        {BANDS.map(y => (
+          <rect key={y} x="17" y={y} width="13" height={BAND_H} />
+        ))}
+      </g>
     </svg>
   );
 }
@@ -70,15 +68,13 @@ export function HireLogo({
   href?: string | null;
   size?: number;
 }) {
+  const dark = tone === 'dark';
   const inner = (
-    <span className="flex items-center gap-2">
+    <span className="flex items-center gap-2.5">
       <HireMark size={size} />
-      <span
-        className={`text-[16.5px] font-semibold tracking-[-0.02em] ${
-          tone === 'dark' ? 'text-white' : 'text-tc-ink'
-        }`}
-      >
-        Hire
+      <span className="flex items-baseline gap-[5px] text-[17px] leading-none tracking-[-0.025em]">
+        <span className={`font-bold ${dark ? 'text-white' : 'text-tc-ink'}`}>Blue-IQ</span>
+        <span className={`font-medium ${dark ? 'text-white/60' : 'text-tc-muted'}`}>Hire</span>
       </span>
     </span>
   );
@@ -86,7 +82,7 @@ export function HireLogo({
   if (!href) return inner;
 
   return (
-    <Link href={href} className="rounded-lg">
+    <Link href={href} aria-label="Blue-IQ Hire home" className="rounded-lg">
       {inner}
     </Link>
   );

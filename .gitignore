@@ -46,3 +46,6 @@ Thumbs.db
 
 # ── Claude Code ───────────────────────────────────────────────────────────────
 .claude/settings.local.json
+
+# copied from node_modules on install (scripts/copy-maplibre-worker.mjs)
+/public/vendor/maplibre/

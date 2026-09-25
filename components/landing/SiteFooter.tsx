@@ -1,10 +1,7 @@
-'use client';
-
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { ButtonLink } from '@/components/ui/Button';
-import { IconArrowRight } from '@/components/ui/icons';
 import { HireLogo } from '../brand/Logo';
+import FooterAuthLinks from './FooterAuthLinks';
+import { TEMPLATE_PAGES } from '@/lib/site/content';
 
 const YEAR = new Date().getFullYear();
 
@@ -12,20 +9,25 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
   {
     heading: 'Product',
     links: [
-      { href: '#how', label: 'How it works' },
-      { href: '#templates', label: 'Templates' },
-      { href: '#match', label: 'Matching' },
-      { href: '#controls', label: 'Controls' },
-      { href: '#faq', label: 'FAQ' },
+      { href: '/formatting', label: 'Resume formatting' },
+      { href: '/matching', label: 'Job matching' },
+      { href: '/talent-map', label: 'Talent heat map' },
+      { href: '/how-it-works', label: 'How it works' },
     ],
   },
   {
-    heading: 'Use it',
+    heading: 'Templates',
     links: [
-      { href: '/upload', label: 'Upload a resume' },
-      { href: '/editor', label: 'Open the editor' },
-      { href: '/match', label: 'Match to a job' },
-      { href: '/signin', label: 'Sign in' },
+      ...TEMPLATE_PAGES.map(t => ({ href: `/templates/${t.slug}`, label: t.name })),
+      { href: '/templates', label: 'Compare templates' },
+    ],
+  },
+  {
+    heading: 'Company',
+    links: [
+      { href: '/security', label: 'Security' },
+      { href: '/faq', label: 'Questions' },
+      { href: 'mailto:oceanbluesolutions@gmail.com', label: 'Contact support' },
     ],
   },
   {
@@ -37,118 +39,47 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
       { href: '/legal/accessibility', label: 'Accessibility' },
     ],
   },
-  {
-    heading: 'Company',
-    links: [
-      { href: '/legal/security', label: 'Security' },
-      { href: 'mailto:oceanbluesolutions@gmail.com', label: 'Contact support' },
-    ],
-  },
 ];
 
-function FooterLink({ href, label }: { href: string; label: string }) {
-  const cls = 'text-[13.5px] text-tc-muted transition-colors hover:text-tc-ink';
-  if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('/api/')) {
-    return (
-      <a href={href} className={cls}>
-        {label}
-      </a>
-    );
+function FooterLink({ href, label, dark }: { href: string; label: string; dark: boolean }) {
+  const cls = `text-[14px] transition-colors ${dark ? 'text-zinc-500 hover:text-white' : 'text-tc-muted hover:text-tc-ink'}`;
+  if (href.startsWith('mailto:')) {
+    return <a href={href} className={cls}>{label}</a>;
   }
-  return (
-    <Link href={href} className={cls}>
-      {label}
-    </Link>
-  );
+  return <Link href={href} className={cls}>{label}</Link>;
 }
 
-export default function SiteFooter() {
+export default function SiteFooter({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
+  const dark = tone === 'dark';
   return (
-    <footer className="border-t border-tc-line bg-white">
-      {/* Closing call to action */}
-      <div className="mx-auto max-w-[1140px] px-5 py-20 lg:py-24">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="rounded-2xl bg-tc-ink px-8 py-14 text-center sm:px-12"
-        >
-          <h2 className="mx-auto max-w-lg text-[28px] font-semibold leading-[1.15] tracking-[-0.03em] text-white sm:text-[38px]">
-            Put a resume through it.
-          </h2>
-          <p className="mx-auto mt-4 max-w-sm text-[15.5px] leading-[1.6] text-white/55">
-            One upload, a short review, a document that matches the template.
+    <footer className={dark ? 'border-t border-white/[0.06] bg-zinc-950' : 'border-t border-tc-line bg-tc-desk'}>
+      <div className="mx-auto grid max-w-[1200px] gap-10 px-5 py-16 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(4,minmax(0,1fr))]">
+        <div>
+          <HireLogo tone={dark ? 'dark' : 'light'} />
+          <p className={`mt-5 max-w-[28ch] text-[14px] leading-relaxed ${dark ? 'text-zinc-500' : 'text-tc-muted'}`}>
+            Resume formatting, job matching and talent heat maps for staffing teams.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <ButtonLink
-              href="/upload"
-              size="lg"
-              variant="secondary"
-              className="border-transparent bg-white text-tc-ink hover:bg-tc-desk"
-            >
-              Upload a resume
-              <IconArrowRight size={15} />
-            </ButtonLink>
-            <Link
-              href="/editor"
-              className="inline-flex h-12 items-center rounded-[10px] border border-white/20 px-6 text-[15px] font-medium text-white/80 transition-colors hover:border-white/40 hover:text-white"
-            >
-              Open the editor
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Sitemap */}
-      <div className="border-t border-tc-line">
-        <div className="mx-auto grid max-w-[1140px] gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,1fr))]">
-          <div>
-             <HireLogo />
-            <p className="mt-4 max-w-[24ch] text-[13.5px] leading-relaxed text-tc-muted">
-              Resume conversion for state workforce submittals. Read the file, check the
-              copy, set it to the template.
-            </p>
-            <p className="mt-5 text-[12.5px] text-tc-faint">
-              A product of Oceanblue Solutions
-            </p>
-          </div>
-
-          {COLUMNS.map(col => (
-            <nav key={col.heading} aria-label={col.heading}>
-              <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-tc-ink">
-                {col.heading}
-              </h2>
-              <ul className="mt-4 space-y-2.5">
-                {col.links.map(l => (
-                  <li key={l.href}>
-                    <FooterLink {...l} />
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          ))}
+          <FooterAuthLinks dark={dark} />
         </div>
+
+        {COLUMNS.map(col => (
+          <nav key={col.heading} aria-label={col.heading}>
+            <h2 className={`text-[14px] font-semibold ${dark ? 'text-white' : 'text-tc-ink'}`}>{col.heading}</h2>
+            <ul className="mt-4 space-y-3">
+              {col.links.map(l => (
+                <li key={l.href}>
+                  <FooterLink {...l} dark={dark} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))}
       </div>
 
-      {/* Legal bar */}
-      <div className="border-t border-tc-line">
-        <div className="mx-auto flex max-w-[1140px] flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[12.5px] text-tc-faint">
-            © {YEAR} Oceanblue Solutions. All rights reserved.
-          </p>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-tc-faint">
-            <Link href="/legal/privacy" className="transition-colors hover:text-tc-ink">
-              Privacy
-            </Link>
-            <Link href="/legal/terms" className="transition-colors hover:text-tc-ink">
-              Terms
-            </Link>
-            <Link href="/legal/cookies" className="transition-colors hover:text-tc-ink">
-              Cookies
-            </Link>
-            <span className="hidden sm:inline">Files are not stored on our servers</span>
-          </div>
+      <div className={dark ? 'border-t border-white/[0.06]' : 'border-t border-tc-line'}>
+        <div className={`mx-auto flex max-w-[1200px] flex-col gap-3 px-5 py-6 text-[13px] sm:flex-row sm:items-center sm:justify-between ${dark ? 'text-zinc-600' : 'text-tc-faint'}`}>
+          <p>© {YEAR} Oceanblue Solutions. All rights reserved.</p>
+          <p>Blue-IQ Hire is a product of Oceanblue Solutions.</p>
         </div>
       </div>
     </footer>

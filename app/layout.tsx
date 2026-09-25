@@ -1,18 +1,18 @@
-import type { Metadata } from 'next';
-import { Instrument_Sans, JetBrains_Mono } from 'next/font/google';
+import type { Metadata, Viewport } from 'next';
+import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
-const instrument = Instrument_Sans({
+// Geist carries the whole interface: tight, neutral and built for screens.
+// The variable keeps its old name so every existing reference still resolves.
+const sans = Geist({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-instrument',
+  variable: '--font-public',
   display: 'swap',
 });
 
-const jetbrains = JetBrains_Mono({
+const mono = Geist_Mono({
   subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-jetbrains',
+  variable: '--font-plex-mono',
   display: 'swap',
 });
 
@@ -43,15 +43,27 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Blue-IQ Hire: resumes set to the format the state requires',
     description:
-      'Word-for-word extraction, a coverage audit against the source, and four submission-ready templates.',
+      'Word-for-word extraction, a coverage check against the source, four submission-ready templates, and job matching with reasons.',
     siteName: 'Blue-IQ Hire',
     type: 'website',
+    locale: 'en_US',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blue-IQ Hire',
+    description: 'Resumes set to the format the state requires, word for word.',
+  },
+  robots: { index: true, follow: true },
+  category: 'business',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#0B1830',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${instrument.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
       <body className="min-h-screen bg-white font-sans text-tc-ink-2 antialiased">
         {children}
       </body>

@@ -72,7 +72,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const upstream = await fetch(`${engine}/extract`, {
+    const upstream = await fetch(`${engine}/extract?source=hire`, {
       method: 'POST',
       body: outbound,
       headers,

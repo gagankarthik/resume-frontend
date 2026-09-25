@@ -1,30 +1,35 @@
-'use client';
+import type { ReactNode } from 'react';
 
-import { motion } from 'framer-motion';
-
+/**
+ * A section opens with what it is about and one sentence of why it matters.
+ * No eyebrow label — the headline says it.
+ */
 export default function SectionHeading({
-  label,
   title,
-  align = 'left',
+  lede,
+  tone = 'light',
   className = '',
 }: {
-  label: string;
   title: string;
-  align?: 'left' | 'center';
+  lede?: ReactNode;
+  tone?: 'light' | 'dark';
   className?: string;
 }) {
+  const dark = tone === 'dark';
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 14 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-90px' }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={`${align === 'center' ? 'mx-auto max-w-2xl text-center' : 'max-w-2xl'} ${className}`}
-    >
-      <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-tc-azure">{label}</p>
-      <h2 className="mt-3 text-[28px] font-semibold leading-[1.15] tracking-[-0.025em] text-tc-ink sm:text-[36px]">
+    <div className={`max-w-[34rem] ${className}`}>
+      <h2
+        className={`text-[30px] font-semibold leading-[1.1] tracking-[-0.028em] sm:text-[40px] ${
+          dark ? 'text-white' : 'text-tc-ink'
+        }`}
+      >
         {title}
       </h2>
-    </motion.div>
+      {lede && (
+        <p className={`mt-4 text-[16.5px] leading-[1.6] ${dark ? 'text-white/65' : 'text-tc-muted'}`}>
+          {lede}
+        </p>
+      )}
+    </div>
   );
 }

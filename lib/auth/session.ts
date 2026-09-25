@@ -6,6 +6,8 @@ export type SessionUser = {
   email?: string;
   name?: string;
   groups?: string[];
+  /** The organisation the user belongs to, from the `custom:tenant_id` attribute. */
+  tenant?: string;
   exp: number;
 };
 
@@ -40,6 +42,10 @@ export async function verifyIdToken(token: string): Promise<SessionUser | null> 
       groups: Array.isArray(payload['cognito:groups'])
         ? (payload['cognito:groups'] as string[])
         : undefined,
+      tenant:
+        typeof payload['custom:tenant_id'] === 'string' && payload['custom:tenant_id'].trim()
+          ? payload['custom:tenant_id'].trim()
+          : undefined,
       exp: Number(payload.exp ?? 0),
     };
   } catch {
