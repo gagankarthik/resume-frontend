@@ -23,11 +23,14 @@ $Region = 'us-east-2'
 $Role   = 'blue-iq-hire-amplify-compute'
 $Here   = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-# 1. Role + inline policy
-aws iam create-role --role-name $Role `
-  --description 'SSR compute role for the Blue-IQ Hire Amplify app (talent map data + geocoding)' `
-  --assume-role-policy-document "file://$Here/compute-role-trust.json" `
-  --tags Key=Project,Value=blue-iq-hire Key=Feature,Value=talent-heat-map | Out-Null
+# 1. Role + inline policy (safe to re-run: an existing role is kept, its policy refreshed)
+aws iam get-role --role-name $Role 2>$null | Out-Null
+if ($LASTEXITCODE -ne 0) {
+  aws iam create-role --role-name $Role `
+    --description 'SSR compute role for the Blue-IQ Hire Amplify app (talent map data + geocoding)' `
+    --assume-role-policy-document "file://$Here/compute-role-trust.json" `
+    --tags Key=Project,Value=blue-iq-hire Key=Feature,Value=talent-heat-map | Out-Null
+}
 aws iam put-role-policy --role-name $Role --policy-name talent-map-access `
   --policy-document "file://$Here/compute-role-policy.json"
 $RoleArn = aws iam get-role --role-name $Role --query Role.Arn --output text
