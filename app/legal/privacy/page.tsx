@@ -5,7 +5,7 @@ export const metadata = { title: 'Privacy policy' };
 export default function Privacy() {
   return (
     <>
-      <DocHeader title="Privacy policy" updated="31 July 2026" />
+      <DocHeader title="Privacy policy" updated="25 September 2026" />
 
       <DocSection title="What this covers">
         <p>
@@ -22,8 +22,15 @@ export default function Privacy() {
         </p>
         <p>
           The extracted record, the structured version of the resume you review in the
-          editor, is stored in your own browser. It stays there until you clear it, and
-          it is never sent anywhere except back to you.
+          editor, is stored in your own browser until you clear it. A copy is also kept on
+          our side, encrypted, so it can feed your organisation&rsquo;s talent heat map. That
+          copy is kept until your organisation asks us to delete it.
+        </p>
+        <p>
+          The heat map is shared with everyone signed in to your organisation. It shows
+          where candidates work (employer, job title, skills, years of experience, and
+          location) and never shows names, email addresses, or phone numbers. City and
+          state are sent to Amazon Location Service to place them on the map.
         </p>
       </DocSection>
 
@@ -42,7 +49,7 @@ export default function Privacy() {
             'Sell, rent, or share candidate data with third parties.',
             'Use uploaded resumes to train models.',
             'Run advertising or third-party tracking scripts.',
-            'Keep a copy of a resume after the request that processed it.',
+            'Keep the resume file after the request that processed it.',
           ]}
         />
       </DocSection>
@@ -58,10 +65,9 @@ export default function Privacy() {
 
       <DocSection title="Your rights">
         <p>
-          Because we do not retain uploaded files, most requests are satisfied by clearing
-          the record in your browser. For anything held against your account, such as session
-          records and sign-in logs, write to us and we will action access, correction, or
-          deletion requests within 30 days.
+          We do not retain uploaded files. For a stored extracted record, or anything held
+          against your account such as session records and sign-in logs, write to us and
+          we will action access, correction, or deletion requests within 30 days.
         </p>
       </DocSection>
 

@@ -5,14 +5,15 @@ export const metadata = { title: 'Data processing' };
 export default function DataProcessing() {
   return (
     <>
-      <DocHeader title="Data processing" updated="31 July 2026" />
+      <DocHeader title="Data processing" updated="25 September 2026" />
 
       <DocSection title="Roles">
         <p>
           When you upload a candidate&rsquo;s resume, your organisation is the controller
           of that personal data and Oceanblue Solutions is a processor acting on your
           instructions. Your instruction is the upload itself: read this document, check
-          it, and return it in the selected template.
+          it, return it in the selected template, and add it to your organisation&rsquo;s
+          talent heat map.
         </p>
       </DocSection>
 
@@ -33,15 +34,18 @@ export default function DataProcessing() {
       <DocSection title="Retention">
         <p>
           The uploaded file is retained only for the duration of the request. The
-          structured record is retained in your browser&rsquo;s local storage under your
-          control. We hold no server-side copy of either.
+          structured record is kept in your browser&rsquo;s local storage under your control,
+          and a copy is kept server-side, encrypted at rest, in US East (Ohio) until you
+          instruct us to delete it. The talent heat map draws on that copy and shows only
+          employer, job title, skills, years of experience, and location, never contact
+          details.
         </p>
       </DocSection>
 
       <DocSection title="Sub-processors">
         <DocList
           items={[
-            'Amazon Web Services: hosting and authentication, US East (Ohio).',
+            'Amazon Web Services: hosting, authentication, storage of extracted records, and map location lookups, US East (Ohio).',
             'A large language model provider: structures the resume text and returns it. It does not retain it for training under our agreement.',
           ]}
         />

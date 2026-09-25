@@ -5,13 +5,13 @@ export const metadata = { title: 'Security' };
 export default function Security() {
   return (
     <>
-      <DocHeader title="Security" updated="31 July 2026" />
+      <DocHeader title="Security" updated="25 September 2026" />
 
       <DocSection title="How a file is handled">
         <p>
           An uploaded resume is read into memory, parsed, and discarded when the request
-          ends. It is never written to disk on our servers, and there is no bucket of past
-          uploads to breach.
+          ends. The file itself is never written to disk on our servers, and there is no
+          bucket of past uploads to breach.
         </p>
       </DocSection>
 
@@ -31,10 +31,26 @@ export default function Security() {
 
       <DocSection title="The extraction service">
         <p>
-          The browser never calls the extraction engine directly. Requests go through this
-          application&rsquo;s own endpoint, which checks the session, validates the file
-          type and size, and forwards the bytes. The engine&rsquo;s address and any key it
-          needs stay server-side.
+          An upload starts with this application: it checks the session and issues a
+          signed ticket that expires after five minutes. The browser spends that ticket on
+          one upload to the extraction engine, which rejects any request without a valid
+          one. If that connection fails, the file goes through this application&rsquo;s own
+          endpoint instead, which performs the same checks. No engine key is ever sent to
+          the browser.
+        </p>
+      </DocSection>
+
+      <DocSection title="Stored records">
+        <p>
+          The structured record from each extraction is kept in an Amazon DynamoDB table in
+          US East (Ohio), encrypted at rest with AWS-managed keys and covered by
+          point-in-time recovery. Only the extraction service can write to it, and only
+          this application can read it, each through its own least-privilege role.
+        </p>
+        <p>
+          The talent heat map reads those records but shows only employer, job title,
+          skills, years of experience, and location. Names, email addresses, and phone
+          numbers are never shown on the map or included in its exports.
         </p>
       </DocSection>
 
@@ -42,8 +58,8 @@ export default function Security() {
         <DocList
           items={[
             'TLS on every connection.',
-            'No candidate data at rest on our infrastructure.',
-            'The extracted record lives in your browser and can be cleared at any time.',
+            'Extracted records at rest are encrypted; resume files are never stored.',
+            'The copy of a record in your browser can be cleared at any time.',
             'Secrets are held as deployment environment variables, never in the client bundle.',
           ]}
         />

@@ -67,8 +67,8 @@ export default function AddResumes({ onClose, onDone }: { onClose: () => void; o
           {!items.length ? (
             <>
               <p className="text-[14.5px] leading-[1.6] text-tc-muted">
-                Each resume is read the same way as a normal upload. Only the employer, role, skills, experience and
-                work location are kept. Names, emails, phone numbers and home addresses are not stored.
+                Each resume is read the same way as a normal upload. The map shows only the employer, role, skills,
+                experience and work location. Names, emails, phone numbers and home addresses are never shown.
               </p>
               <button
                 type="button"

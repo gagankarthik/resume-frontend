@@ -16,7 +16,7 @@ export function DataPath() {
     <svg viewBox="0 0 560 300" className="h-auto w-full" role="img" aria-labelledby="dp-title">
       <title id="dp-title">
         The resume travels from your browser to the extraction service, is read in memory, and comes
-        back to your browser as a record. It is not written to disk.
+        back to your browser as a record. The file is not written to disk.
       </title>
 
       {/* your computer */}
@@ -84,12 +84,12 @@ export const SECURITY_FACTS = [
     body: 'An uploaded file is held in memory while it is read, then released. It is never saved on our servers.',
   },
   {
-    title: 'The full record lives in your browser',
-    body: 'The extracted resume is kept in this browser until you clear it, so the editor and every export work from your copy.',
+    title: 'Records are encrypted at rest',
+    body: 'The extracted record is kept in your browser for the editor, and an encrypted copy is kept for your organisation until you ask us to delete it.',
   },
   {
-    title: 'The talent map keeps no contact details',
-    body: 'For the talent map, only the employer, role, skills, experience and work location are saved to your organisation’s private workspace. Names, emails, phone numbers and home addresses are never saved.',
+    title: 'The talent map shows no contact details',
+    body: 'The talent map shows only employer, role, skills, experience and work location, and only to your organisation. Names, emails, phone numbers and home addresses are never shown or exported.',
   },
   {
     title: 'Matching is scoped to your account',

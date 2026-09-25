@@ -10,7 +10,7 @@ import { navTileFor } from '@/components/landing/related-links';
 export const metadata: Metadata = {
   title: 'Security and candidate data handling',
   description:
-    'How Blue-IQ Hire handles resumes: files are read in memory and never written to disk, the full record stays in your browser, the talent map keeps no contact details, and matching only searches your own account.',
+    'How Blue-IQ Hire handles resumes: files are read in memory and never written to disk, extracted records are encrypted at rest, the talent map shows no contact details, and matching only searches your own account.',
   alternates: { canonical: '/security' },
 };
 
@@ -35,7 +35,7 @@ export default function SecurityPage() {
           <div>
             <SectionHeading
               title="The trip a resume takes."
-              lede="Up to the extraction service, read in memory, and back to your browser as a record. That is the whole journey."
+              lede="Up to the extraction service, read in memory, and back to your browser as a record, with an encrypted copy kept for your organisation."
             />
             <div className="mt-10">
               <SecurityFacts />

@@ -176,7 +176,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: 'Is candidate data stored?',
-    a: 'The file is held in memory while it is read and never written to disk. The full extracted record stays in your browser until you clear it. For the talent map, only the employer, role, skills, experience and work location are saved to your organisation’s private workspace; names, emails, phone numbers and home addresses are never saved.',
+    a: 'The resume file is held in memory while it is read and never written to disk. The extracted record is kept in your browser for the editor, and an encrypted copy is kept for your organisation until you ask us to delete it. The talent map shows only employer, role, skills, experience and work location; names, emails, phone numbers and home addresses are never shown on it or exported.',
   },
   {
     q: 'Can one resume go to several states?',
